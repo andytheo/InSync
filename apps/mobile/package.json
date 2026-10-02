@@ -8,7 +8,8 @@
     "start:clear": "expo start --clear",
     "doctor": "expo-doctor",
     "clean": "node -e \"const fs=require('fs');for(const p of ['node_modules','package-lock.json','.expo'])fs.rmSync(p,{recursive:true,force:true})\"",
-    "reset": "npm run clean && npm install && npm run start:clear"
+    "reset": "npm run clean && npm install && npm run start:clear",
+    "start:phone": "set EXPO_PUBLIC_API_URL=http://10.0.0.28:5000&& expo start --tunnel"
   },
   "dependencies": {
     "@microsoft/signalr": "^8.0.7",
