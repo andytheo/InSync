@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.SignalR; using System.Collections.Concurrent;
 var b=WebApplication.CreateBuilder(args); b.Services.AddSignalR(); b.Services.AddSingleton<RoomStore>(); b.Services.AddCors(o=>o.AddDefaultPolicy(p=>p.AllowAnyHeader().AllowAnyMethod().SetIsOriginAllowed(_=>true).AllowCredentials())); var app=b.Build(); app.UseCors();
 app.MapPost("/api/rooms",(CreateRoom x,RoomStore s)=>Results.Ok(s.Create(x.Name))); app.MapGet("/api/rooms/{code}",(string code,RoomStore s)=>s.Get(code) is {} r?Results.Ok(r):Results.NotFound()); app.MapHub<RoomHub>("/hubs/rooms"); app.Run();
+public partial class Program { }
 record CreateRoom(string Name); record Participant(Guid Id,string Name,bool Ready=false); record Playback(double Position,bool Playing,long Sequence,DateTimeOffset UpdatedAt);
 sealed class Room { public required string Code{get;init;} public List<Participant> Participants{get;}=[]; public string? Content{get;set;} public Playback Playback{get;set;}=new(0,false,0,DateTimeOffset.UtcNow); public bool Ended{get;set;} }
 sealed class RoomStore { readonly ConcurrentDictionary<string,Room> rooms=new(); public Room Create(string name){string c; do c=Random.Shared.Next(100000,999999).ToString();while(rooms.ContainsKey(c));var r=new Room{Code=c};r.Participants.Add(new(Guid.NewGuid(),name));rooms[c]=r;return r;} public Room? Get(string c)=>rooms.GetValueOrDefault(c); }

@@ -1,0 +1,25 @@
+name: CI
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Backend integration tests
+        run: dotnet test backend/InSync.Api.Tests/InSync.Api.Tests.csproj --configuration Release
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/mobile/package.json
+      - name: Mobile dependencies
+        working-directory: apps/mobile
+        run: npm install
+      - name: TypeScript check
+        working-directory: apps/mobile
+        run: npx tsc --noEmit
