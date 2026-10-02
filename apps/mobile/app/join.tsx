@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { router } from "expo-router";
-import { Button, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
-export default function Join() {
-  const [code, setCode] = useState("");
-  const [name, setName] = useState("");
-  return <View style={{ padding: 24, gap: 12 }}><Text>Join a room</Text><TextInput placeholder="Room code" value={code} onChangeText={setCode} autoCapitalize="characters" style={{ borderWidth: 1, padding: 12 }} /><TextInput placeholder="Your name" value={name} onChangeText={setName} style={{ borderWidth: 1, padding: 12 }} /><Button title="Join" disabled={!code.trim()} onPress={() => router.replace({ pathname: "/room/[code]", params: { code: code.trim(), name: name.trim() || "Guest" } })} /></View>;
+export default function Join(){
+ const [code,setCode]=useState("");const [name,setName]=useState("");
+ return <View style={s.page}><Text style={s.kicker}>JOIN YOUR PERSON</Text><Text style={s.title}>Enter the room</Text><Text style={s.copy}>Use the six-digit code your partner shared with you.</Text><TextInput placeholder="Room code" placeholderTextColor="#7f899f" value={code} onChangeText={x=>setCode(x.replace(/\D/g,"").slice(0,6))} keyboardType="number-pad" style={s.input}/><TextInput placeholder="Your name" placeholderTextColor="#7f899f" value={name} onChangeText={setName} style={s.input}/><Pressable disabled={code.length!==6} onPress={()=>router.replace({pathname:"/room/[code]",params:{code,name:name.trim()||"Guest"}})} style={[s.button,code.length!==6&&s.disabled]}><Text style={s.buttonText}>Join room</Text></Pressable></View>
 }
+const s=StyleSheet.create({page:{flex:1,padding:28,paddingTop:60,gap:16,backgroundColor:"#0b1020"},kicker:{color:"#8da2fb",fontWeight:"800",letterSpacing:2},title:{color:"white",fontSize:34,fontWeight:"800"},copy:{color:"#aeb7cc",fontSize:16,lineHeight:23},input:{backgroundColor:"#171e33",borderWidth:1,borderColor:"#29324b",borderRadius:14,padding:16,color:"white",fontSize:17},button:{backgroundColor:"#7c8cff",borderRadius:14,padding:17},disabled:{opacity:.4},buttonText:{textAlign:"center",fontWeight:"800",fontSize:17,color:"#08101f"}});
