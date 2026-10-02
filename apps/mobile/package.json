@@ -13,7 +13,7 @@
   "dependencies": {
     "@microsoft/signalr": "^8.0.7",
     "expo": "~57.0.17",
-    "expo-router": "~7.0.0",
+    "expo-router": "~57.0.21",
     "react": "19.2.3",
     "react-native": "0.86.3",
     "react-dom": "19.2.3",
