@@ -34,6 +34,7 @@ public class RoomSyncTests : IClassFixture<WebApplicationFactory<Program>> {
   var a=Connect();var b=Connect();bool? ready=null;string? content=null,reaction=null;b.On<Guid,bool>("ParticipantReady",(_,x)=>ready=x);b.On<string>("ContentSelected",x=>content=x);b.On<string>("ReactionSet",x=>reaction=x);
   await a.StartAsync();await b.StartAsync();await a.InvokeAsync("JoinRoom",created!.code,"A");await b.InvokeAsync("JoinRoom",created.code,"B");await a.InvokeAsync("SetReady",created.code,true);await a.InvokeAsync("SelectContent",created.code,"Movie");await a.InvokeAsync("React",created.code,"👏");await Wait(()=>ready==true&&content=="Movie"&&reaction=="👏");await a.DisposeAsync();await b.DisposeAsync();
  }
+ [Fact] public async Task Playback_sequence_ignores_insignificant_duplicate_playing_update(){var http=factory.CreateClient();var created=await (await http.PostAsJsonAsync("/api/rooms",new {name="Host"})).Content.ReadFromJsonAsync<RoomDto>();Assert.NotNull(created);var a=Connect();await a.StartAsync();await a.InvokeAsync("JoinRoom",created!.code,"A");await a.InvokeAsync("PlaybackChanged",created.code,10d,true);await a.InvokeAsync("PlaybackChanged",created.code,10.1d,true);var state=await http.GetFromJsonAsync<PlaybackRoomDto>($"/api/rooms/{created.code}");Assert.Equal(1,state!.playback.sequence);await a.DisposeAsync();}
  [Fact] public async Task Health_endpoint_is_available(){var r=await factory.CreateClient().GetAsync("/health");Assert.True(r.IsSuccessStatusCode);}
  [Fact] public async Task Ended_room_is_removed_by_cleanup(){
   var http=factory.CreateClient();var created=await (await http.PostAsJsonAsync("/api/rooms",new {name="Host"})).Content.ReadFromJsonAsync<RoomDto>();Assert.NotNull(created);
@@ -50,5 +51,5 @@ public class RoomSyncTests : IClassFixture<WebApplicationFactory<Program>> {
  sealed class TestDbFactory(DbContextOptions<InSyncDbContext> options):IDbContextFactory<InSyncDbContext>{public InSyncDbContext CreateDbContext()=>new(options);}
  HubConnection Connect()=>new HubConnectionBuilder().WithUrl(new Uri(factory.Server.BaseAddress,"/hubs/rooms"),o=>o.HttpMessageHandlerFactory=_=>factory.Server.CreateHandler()).Build();
  static async Task Wait(Func<bool> ok){for(var i=0;i<50&&!ok();i++)await Task.Delay(20);Assert.True(ok());}
- record RoomDto(string code,PlaybackDto playback); record RoomStateDto(string code,List<ParticipantDto> participants); record ParticipantDto(Guid id,string name,bool ready,bool online); record PlaybackDto(double position,bool playing,long sequence,DateTimeOffset updatedAt);
+ record RoomDto(string code,PlaybackDto playback); record PlaybackRoomDto(string code,PlaybackDto playback); record RoomStateDto(string code,List<ParticipantDto> participants); record ParticipantDto(Guid id,string name,bool ready,bool online); record PlaybackDto(double position,bool playing,long sequence,DateTimeOffset updatedAt);
 }
