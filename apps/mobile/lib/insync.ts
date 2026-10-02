@@ -1,10 +1,11 @@
 import { HubConnection, HubConnectionBuilder } from "@microsoft/signalr";
 export type Participant={id:string;name:string;ready:boolean;online:boolean};
 export type ContentSelection={title:string;provider:string;url?:string};
-export type ScheduledStart={startsAt:string;position:number};
+export type ScheduledStart={startsAt:string;position:number;sequence:number};
 export type Playback={position:number;playing:boolean;sequence:number;updatedAt:string};
 export type Room={code:string;participants:Participant[];content?:string;selection?:ContentSelection;playback:Playback;ended:boolean};
 export type RoomEvents={onPlayback?:(s:Playback)=>void;onParticipant?:(p:Participant)=>void;onParticipantLeft?:(p:Participant)=>void;onReady?:(id:string,ready:boolean)=>void;onContent?:(content:string)=>void;onMedia?:(selection:ContentSelection)=>void;onReaction?:(emoji:string)=>void;onStart?:(s:ScheduledStart)=>void;onEnded?:()=>void};
+export function expectedPlaybackPosition(p:Playback,now=Date.now()){const updated=Date.parse(p.updatedAt);if(!p.playing||!Number.isFinite(updated))return Math.max(0,p.position);return Math.max(0,p.position+Math.max(0,(now-updated)/1000));}
 const baseUrl=process.env.EXPO_PUBLIC_API_URL??"http://localhost:5000";
 export async function createRoom(name:string):Promise<Room>{const r=await fetch(`${baseUrl}/api/rooms`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});if(!r.ok)throw new Error("Could not create room.");return r.json();}
 export async function getRoom(code:string):Promise<Room>{const r=await fetch(`${baseUrl}/api/rooms/${code}`);if(!r.ok)throw new Error("Room not found.");return r.json();}
