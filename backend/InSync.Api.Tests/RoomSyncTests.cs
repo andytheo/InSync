@@ -1,4 +1,4 @@
-using System.Net.Http.Json; using Microsoft.Extensions.DependencyInjection; using Microsoft.AspNetCore.Mvc.Testing; using Microsoft.AspNetCore.SignalR.Client; using Xunit;
+using System.Net.Http.Json; using Microsoft.Data.Sqlite; using Microsoft.EntityFrameworkCore; using Microsoft.Extensions.DependencyInjection; using Microsoft.AspNetCore.Mvc.Testing; using Microsoft.AspNetCore.SignalR.Client; using Xunit;
 public class RoomSyncTests : IClassFixture<WebApplicationFactory<Program>> {
  readonly WebApplicationFactory<Program> factory; public RoomSyncTests(WebApplicationFactory<Program> f)=>factory=f;
  [Fact] public async Task Two_clients_share_authoritative_play_pause_seek_state(){
@@ -25,6 +25,14 @@ public class RoomSyncTests : IClassFixture<WebApplicationFactory<Program>> {
   var hub=Connect();await hub.StartAsync();await hub.InvokeAsync("JoinRoom",created!.code,"Host");await hub.InvokeAsync("EndRoom",created.code);await hub.DisposeAsync();
   var store=factory.Services.GetRequiredService<RoomStore>();Assert.Equal(1,store.CleanupExpired(TimeSpan.FromHours(6)));Assert.Null(store.Get(created.code));
  }
+ [Fact] public void Room_store_restores_persisted_room_state(){
+  using var connection=new SqliteConnection("Data Source=:memory:");connection.Open();
+  var options=new DbContextOptionsBuilder<InSyncDbContext>().UseSqlite(connection).Options;
+  using(var db=new InSyncDbContext(options))db.Database.EnsureCreated();
+  var factory=new TestDbFactory(options);var first=new RoomStore(factory);var room=first.Create("Host");var guest=first.Join(room.Code,"connection-1","Guest");room.Content="Movie night";room.Playback=new Playback(123,true,7,DateTimeOffset.UtcNow);first.Save(room);
+  var restored=new RoomStore(factory);var loaded=restored.Get(room.Code);Assert.NotNull(loaded);Assert.Equal("Movie night",loaded!.Content);Assert.Equal(123,loaded.Playback.Position);Assert.Equal(7,loaded.Playback.Sequence);Assert.Contains(loaded.Participants,x=>x.Id==guest.Id&&x.Name=="Guest");Assert.All(loaded.Participants,x=>Assert.False(x.Online));
+ }
+ sealed class TestDbFactory(DbContextOptions<InSyncDbContext> options):IDbContextFactory<InSyncDbContext>{public InSyncDbContext CreateDbContext()=>new(options);}
  HubConnection Connect()=>new HubConnectionBuilder().WithUrl(new Uri(factory.Server.BaseAddress,"/hubs/rooms"),o=>o.HttpMessageHandlerFactory=_=>factory.Server.CreateHandler()).Build();
  static async Task Wait(Func<bool> ok){for(var i=0;i<50&&!ok();i++)await Task.Delay(20);Assert.True(ok());}
  record RoomDto(string code,PlaybackDto playback); record RoomStateDto(string code,List<ParticipantDto> participants); record ParticipantDto(Guid id,string name,bool ready,bool online); record PlaybackDto(double position,bool playing,long sequence,DateTimeOffset updatedAt);
