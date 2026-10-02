@@ -14,13 +14,13 @@ app.UseCors();
 if(!string.IsNullOrWhiteSpace(dbConnection)){using var scope=app.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<InSyncDbContext>();await db.Database.MigrateAsync();}
 
 app.MapGet("/health",()=>Results.Ok(new {status="ok",time=DateTimeOffset.UtcNow}));
-app.MapPost("/api/rooms",(CreateRoom x,RoomStore s)=>Results.Ok(s.Create(x.Name)));
+app.MapPost("/api/rooms",(CreateRoom x,RoomStore s)=>{var name=(x.Name??"").Trim();return name.Length is <1 or >80?Results.BadRequest(new{error="Enter a name up to 80 characters."}):Results.Ok(s.Create(name));});
 app.MapGet("/api/rooms/{code}",(string code,RoomStore s)=>s.Get(code) is {} r?Results.Ok(r):Results.NotFound());
 app.MapHub<RoomHub>("/hubs/rooms");
 app.Run();
 
 public partial class Program { }
-record CreateRoom(string Name);
+record CreateRoom(string? Name);
 public record Participant(Guid Id,string Name,bool Ready=false,bool Online=true);
 public record Playback(double Position,bool Playing,long Sequence,DateTimeOffset UpdatedAt);
 public record ContentSelection(string Title,string Provider,string? Url);
