@@ -20,6 +20,11 @@ public class RoomSyncTests : IClassFixture<WebApplicationFactory<Program>> {
   await b.DisposeAsync();
  }
  [Fact] public async Task Health_endpoint_is_available(){var r=await factory.CreateClient().GetAsync("/health");Assert.True(r.IsSuccessStatusCode);}
+ [Fact] public async Task Ended_room_is_removed_by_cleanup(){
+  var http=factory.CreateClient();var created=await (await http.PostAsJsonAsync("/api/rooms",new {name="Host"})).Content.ReadFromJsonAsync<RoomDto>();Assert.NotNull(created);
+  var hub=Connect();await hub.StartAsync();await hub.InvokeAsync("JoinRoom",created!.code,"Host");await hub.InvokeAsync("EndRoom",created.code);await hub.DisposeAsync();
+  var store=factory.Services.GetRequiredService<RoomStore>();Assert.Equal(1,store.CleanupExpired(TimeSpan.FromHours(6)));Assert.Null(store.Get(created.code));
+ }
  HubConnection Connect()=>new HubConnectionBuilder().WithUrl(new Uri(factory.Server.BaseAddress,"/hubs/rooms"),o=>o.HttpMessageHandlerFactory=_=>factory.Server.CreateHandler()).Build();
  static async Task Wait(Func<bool> ok){for(var i=0;i<50&&!ok();i++)await Task.Delay(20);Assert.True(ok());}
  record RoomDto(string code,PlaybackDto playback); record RoomStateDto(string code,List<ParticipantDto> participants); record ParticipantDto(Guid id,string name,bool ready,bool online); record PlaybackDto(double position,bool playing,long sequence,DateTimeOffset updatedAt);
