@@ -17,12 +17,12 @@ Two real phones can create/join the same room and synchronize playback state thr
 - [x] Ready state
 - [x] Reactions
 - [x] Mobile-first v0.1 UI
-- [ ] Fix participant identity so reconnects do not create duplicates
-- [ ] Track disconnects and remove/offline participants correctly
-- [ ] Make playback sequence updates concurrency-safe
-- [ ] Add room expiration and cleanup
-- [ ] Add API health endpoint and connection diagnostics
-- [ ] Expand integration tests for ready/content/reactions/reconnects
+- [x] Fix participant identity so reconnects do not create duplicates
+- [x] Track disconnects and remove/offline participants correctly
+- [x] Make playback sequence updates concurrency-safe
+- [x] Add room expiration and cleanup
+- [x] Add API health endpoint and connection diagnostics
+- [ ] Expand integration tests for ready/content/reactions (reconnect + cleanup covered)
 
 ### P1 — Persistent, secure rooms
 - [ ] PostgreSQL + EF Core persistence
