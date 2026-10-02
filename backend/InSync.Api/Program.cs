@@ -1,0 +1,12 @@
+using Microsoft.AspNetCore.SignalR; using System.Collections.Concurrent;
+var b=WebApplication.CreateBuilder(args); b.Services.AddSignalR(); b.Services.AddSingleton<RoomStore>(); b.Services.AddCors(o=>o.AddDefaultPolicy(p=>p.AllowAnyHeader().AllowAnyMethod().SetIsOriginAllowed(_=>true).AllowCredentials())); var app=b.Build(); app.UseCors();
+app.MapPost("/api/rooms",(CreateRoom x,RoomStore s)=>Results.Ok(s.Create(x.Name))); app.MapGet("/api/rooms/{code}",(string code,RoomStore s)=>s.Get(code) is {} r?Results.Ok(r):Results.NotFound()); app.MapHub<RoomHub>("/hubs/rooms"); app.Run();
+record CreateRoom(string Name); record Participant(Guid Id,string Name,bool Ready=false); record Playback(double Position,bool Playing,long Sequence,DateTimeOffset UpdatedAt);
+sealed class Room { public required string Code{get;init;} public List<Participant> Participants{get;}=[]; public string? Content{get;set;} public Playback Playback{get;set;}=new(0,false,0,DateTimeOffset.UtcNow); public bool Ended{get;set;} }
+sealed class RoomStore { readonly ConcurrentDictionary<string,Room> rooms=new(); public Room Create(string name){string c; do c=Random.Shared.Next(100000,999999).ToString();while(rooms.ContainsKey(c));var r=new Room{Code=c};r.Participants.Add(new(Guid.NewGuid(),name));rooms[c]=r;return r;} public Room? Get(string c)=>rooms.GetValueOrDefault(c); }
+sealed class RoomHub(RoomStore store):Hub { Room Get(string c)=>store.Get(c)??throw new HubException("Room not found");
+public async Task JoinRoom(string c,string name){var r=Get(c);var p=new Participant(Guid.NewGuid(),name);r.Participants.Add(p);await Groups.AddToGroupAsync(Context.ConnectionId,c);await Clients.Group(c).SendAsync("ParticipantJoined",p);}
+public async Task SetReady(string c,Guid id,bool ready){var r=Get(c);var i=r.Participants.FindIndex(x=>x.Id==id);if(i>=0)r.Participants[i]=r.Participants[i] with{Ready=ready};await Clients.Group(c).SendAsync("ParticipantReady",id,ready);}
+public async Task SelectContent(string c,string content){Get(c).Content=content;await Clients.Group(c).SendAsync("ContentSelected",content);}
+public async Task PlaybackChanged(string c,double pos,bool playing,long seq){var r=Get(c);if(seq<=r.Playback.Sequence)return;r.Playback=new(pos,playing,seq,DateTimeOffset.UtcNow);await Clients.OthersInGroup(c).SendAsync("PlaybackChanged",r.Playback);}
+public Task React(string c,string emoji)=>Clients.OthersInGroup(c).SendAsync("ReactionSet",emoji); public async Task EndRoom(string c){Get(c).Ended=true;await Clients.Group(c).SendAsync("RoomEnded");} }

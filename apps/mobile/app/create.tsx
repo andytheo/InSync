@@ -1,0 +1,1 @@
+import {Text,View} from "react-native";export default function Create(){return <View style={{padding:24}}><Text>Create a room</Text></View>}

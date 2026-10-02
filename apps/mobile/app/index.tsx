@@ -1,0 +1,1 @@
+import {Link} from "expo-router";import {SafeAreaView,Text,View} from "react-native";export default function Home(){return <SafeAreaView><View style={{padding:24,gap:16}}><Text style={{fontSize:32,fontWeight:"700"}}>InSync</Text><Text>Watch together, even when you're apart.</Text><Link href="/create">Create a room</Link><Link href="/join">Join a room</Link></View></SafeAreaView>}
