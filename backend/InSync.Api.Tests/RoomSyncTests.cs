@@ -1,4 +1,4 @@
-using System.Net.Http.Json; using Microsoft.AspNetCore.Mvc.Testing; using Microsoft.AspNetCore.SignalR.Client; using Xunit;
+using System.Net.Http.Json; using Microsoft.Extensions.DependencyInjection; using Microsoft.AspNetCore.Mvc.Testing; using Microsoft.AspNetCore.SignalR.Client; using Xunit;
 public class RoomSyncTests : IClassFixture<WebApplicationFactory<Program>> {
  readonly WebApplicationFactory<Program> factory; public RoomSyncTests(WebApplicationFactory<Program> f)=>factory=f;
  [Fact] public async Task Two_clients_share_authoritative_play_pause_seek_state(){
