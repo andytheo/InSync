@@ -58,14 +58,14 @@ public sealed class RoomStore {
  public (Room Room,Participant Participant) RequireMember(string code,string connectionId){if(!connections.TryGetValue(connectionId,out var link)||link.Code!=code)throw new HubException("Join the room before changing it.");var r=Get(code)??throw new HubException("Room not found");var p=r.Participants.SingleOrDefault(x=>x.Id==link.ParticipantId&&x.Online)??throw new HubException("Participant is not connected");return(r,p);}
  void LoadPersisted(){
   if(dbFactory is null)return;using var db=dbFactory.CreateDbContext();foreach(var e in db.Rooms.AsNoTracking().Include(x=>x.Participants).Where(x=>!x.Ended)){
-   var r=new Room{Code=e.Code,Content=e.Content,Playback=new(e.PlaybackPosition,e.PlaybackPlaying,e.PlaybackSequence,e.PlaybackUpdatedAt),Ended=e.Ended,LastActivityAt=e.LastActivityAt};
+   var r=new Room{Code=e.Code,Content=e.Content,Selection=e.Content is null?null:new ContentSelection(e.Content,e.Provider??"other",e.MediaUrl),Playback=new(e.PlaybackPosition,e.PlaybackPlaying,e.PlaybackSequence,e.PlaybackUpdatedAt),Ended=e.Ended,LastActivityAt=e.LastActivityAt};
    r.Participants.AddRange(e.Participants.Select(p=>new Participant(p.Id,p.Name,false,false)));rooms[r.Code]=r;
   }
  }
  void Persist(Room r){
   if(dbFactory is null)return;using var db=dbFactory.CreateDbContext();var e=db.Rooms.Include(x=>x.Participants).SingleOrDefault(x=>x.Code==r.Code);
   if(e is null){e=new RoomEntity{Code=r.Code};db.Rooms.Add(e);}
-  e.Content=r.Content;e.PlaybackPosition=r.Playback.Position;e.PlaybackPlaying=r.Playback.Playing;e.PlaybackSequence=r.Playback.Sequence;e.PlaybackUpdatedAt=r.Playback.UpdatedAt;e.Ended=r.Ended;e.LastActivityAt=r.LastActivityAt;
+  e.Content=r.Content;e.Provider=r.Selection?.Provider;e.MediaUrl=r.Selection?.Url;e.PlaybackPosition=r.Playback.Position;e.PlaybackPlaying=r.Playback.Playing;e.PlaybackSequence=r.Playback.Sequence;e.PlaybackUpdatedAt=r.Playback.UpdatedAt;e.Ended=r.Ended;e.LastActivityAt=r.LastActivityAt;
   var ids=r.Participants.Select(x=>x.Id).ToHashSet();db.Participants.RemoveRange(e.Participants.Where(x=>!ids.Contains(x.Id)));
   foreach(var p in r.Participants){var pe=e.Participants.SingleOrDefault(x=>x.Id==p.Id);if(pe is null){pe=new ParticipantEntity{Id=p.Id,RoomCode=r.Code,Name=p.Name};e.Participants.Add(pe);}pe.Name=p.Name;pe.Ready=p.Ready;pe.Online=p.Online;}
   db.SaveChanges();
