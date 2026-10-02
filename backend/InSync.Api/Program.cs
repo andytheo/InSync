@@ -31,7 +31,7 @@ sealed class Room {
  public DateTimeOffset LastActivityAt{get;set;}=DateTimeOffset.UtcNow;
 }
 
-sealed class RoomStore {
+public sealed class RoomStore {
  readonly ConcurrentDictionary<string,Room> rooms=new();
  readonly ConcurrentDictionary<string,(string Code,Guid ParticipantId)> connections=new();
  public Room Create(string name){string c;do c=Random.Shared.Next(100000,999999).ToString();while(rooms.ContainsKey(c));var r=new Room{Code=c};rooms[c]=r;return r;}
