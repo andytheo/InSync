@@ -3,7 +3,7 @@ import { StyleSheet,View } from "react-native";
 import { WebView,WebViewMessageEvent } from "react-native-webview";
 import type { Playback } from "../lib/insync";
 
-export function youtubeVideoId(value:string){const v=value.trim();if(/^[\\w-]{11}$/.test(v))return v;const m=v.match(/(?:youtu\\.be\\/|youtube\\.com\\/(?:watch\\?v=|embed\\/|shorts\\/))([\\w-]{11})/i);return m?.[1]??null;}
+export function youtubeVideoId(value:string){const v=value.trim();if(/^[\w-]{11}$/.test(v))return v;const m=v.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/i);return m?.[1]??null;}
 export default function YouTubeSyncPlayer({url,playback,onLocalPlayback}:{url:string;playback:Playback;onLocalPlayback:(position:number,playing:boolean)=>void}){
  const ref=useRef<WebView>(null),applying=useRef(false);const id=useMemo(()=>youtubeVideoId(url),[url]);
  const html=useMemo(()=>id?`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"/></head><body style="margin:0;background:#000"><div id="p"></div><script src="https://www.youtube.com/iframe_api"></script><script>let p;function send(type){if(!p)return;ReactNativeWebView.postMessage(JSON.stringify({type,position:p.getCurrentTime(),playing:p.getPlayerState()===1}))}function onYouTubeIframeAPIReady(){p=new YT.Player("p",{videoId:"${id}",width:"100%",height:"100%",playerVars:{playsinline:1,controls:1},events:{onReady:()=>send("ready"),onStateChange:()=>send("state")}})}window.applyState=(pos,playing)=>{if(!p)return;p.seekTo(pos,true);playing?p.playVideo():p.pauseVideo()}</script></body></html>`:"",[id]);
