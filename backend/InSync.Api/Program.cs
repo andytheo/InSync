@@ -17,10 +17,10 @@ app.Run();
 
 public partial class Program { }
 record CreateRoom(string Name);
-record Participant(Guid Id,string Name,bool Ready=false,bool Online=true);
-record Playback(double Position,bool Playing,long Sequence,DateTimeOffset UpdatedAt);
+public record Participant(Guid Id,string Name,bool Ready=false,bool Online=true);
+public record Playback(double Position,bool Playing,long Sequence,DateTimeOffset UpdatedAt);
 
-sealed class Room {
+public sealed class Room {
  public required string Code{get;init;}
  public List<Participant> Participants{get;}=[];
  public string? Content{get;set;}
