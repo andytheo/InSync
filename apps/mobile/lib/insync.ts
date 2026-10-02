@@ -1,24 +1,9 @@
 import { HubConnection, HubConnectionBuilder } from "@microsoft/signalr";
-
-export type Room = { code: string; playback: Playback };
-export type Playback = { position: number; playing: boolean; sequence: number; updatedAt: string };
-
-const baseUrl = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:5000";
-
-export async function createRoom(name: string): Promise<Room> {
-  const response = await fetch(`${baseUrl}/api/rooms`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name }),
-  });
-  if (!response.ok) throw new Error("Could not create room.");
-  return response.json();
-}
-
-export async function connectToRoom(code: string, name: string, onPlayback: (state: Playback) => void): Promise<HubConnection> {
-  const connection = new HubConnectionBuilder().withUrl(`${baseUrl}/hubs/rooms`).withAutomaticReconnect().build();
-  connection.on("PlaybackChanged", onPlayback);
-  await connection.start();
-  await connection.invoke("JoinRoom", code, name);
-  return connection;
-}
+export type Participant={id:string;name:string;ready:boolean};
+export type Playback={position:number;playing:boolean;sequence:number;updatedAt:string};
+export type Room={code:string;participants:Participant[];content?:string;playback:Playback;ended:boolean};
+export type RoomEvents={onPlayback?:(s:Playback)=>void;onParticipant?:(p:Participant)=>void;onReady?:(id:string,ready:boolean)=>void;onContent?:(content:string)=>void;onReaction?:(emoji:string)=>void;onEnded?:()=>void};
+const baseUrl=process.env.EXPO_PUBLIC_API_URL??"http://localhost:5000";
+export async function createRoom(name:string):Promise<Room>{const r=await fetch(`${baseUrl}/api/rooms`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});if(!r.ok)throw new Error("Could not create room.");return r.json();}
+export async function getRoom(code:string):Promise<Room>{const r=await fetch(`${baseUrl}/api/rooms/${code}`);if(!r.ok)throw new Error("Room not found.");return r.json();}
+export async function connectToRoom(code:string,name:string,e:RoomEvents={}):Promise<HubConnection>{const c=new HubConnectionBuilder().withUrl(`${baseUrl}/hubs/rooms`).withAutomaticReconnect().build();if(e.onPlayback)c.on("PlaybackChanged",e.onPlayback);if(e.onParticipant)c.on("ParticipantJoined",e.onParticipant);if(e.onReady)c.on("ParticipantReady",e.onReady);if(e.onContent)c.on("ContentSelected",e.onContent);if(e.onReaction)c.on("ReactionSet",e.onReaction);if(e.onEnded)c.on("RoomEnded",e.onEnded);await c.start();await c.invoke("JoinRoom",code,name);return c;}
