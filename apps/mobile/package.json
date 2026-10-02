@@ -4,7 +4,11 @@
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
-    "start": "expo start"
+    "start": "expo start",
+    "start:clear": "expo start --clear",
+    "doctor": "expo-doctor",
+    "clean": "node -e \"const fs=require('fs');for(const p of ['node_modules','package-lock.json','.expo'])fs.rmSync(p,{recursive:true,force:true})\"",
+    "reset": "npm run clean && npm install && npm run start:clear"
   },
   "dependencies": {
     "@microsoft/signalr": "^8.0.7",
