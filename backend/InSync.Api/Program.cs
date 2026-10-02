@@ -23,11 +23,13 @@ public partial class Program { }
 record CreateRoom(string Name);
 public record Participant(Guid Id,string Name,bool Ready=false,bool Online=true);
 public record Playback(double Position,bool Playing,long Sequence,DateTimeOffset UpdatedAt);
+public record ContentSelection(string Title,string Provider,string? Url);
 
 public sealed class Room {
  public required string Code{get;init;}
  public List<Participant> Participants{get;}=[];
  public string? Content{get;set;}
+ public ContentSelection? Selection{get;set;}
  public Playback Playback{get;set;}=new(0,false,0,DateTimeOffset.UtcNow);
  public bool Ended{get;set;}
  public object Gate{get;}=new();
@@ -75,7 +77,8 @@ sealed class RoomHub(RoomStore store):Hub {
  Room Get(string c)=>store.Get(c)??throw new HubException("Room not found");
  public async Task JoinRoom(string c,string name){var p=store.Join(c,Context.ConnectionId,name);await Groups.AddToGroupAsync(Context.ConnectionId,c);await Clients.Group(c).SendAsync("ParticipantJoined",p);}
  public async Task SetReady(string c,bool ready){var (r,p)=store.RequireMember(c,Context.ConnectionId);lock(r.Gate){var i=r.Participants.FindIndex(x=>x.Id==p.Id);r.Participants[i]=r.Participants[i] with{Ready=ready};r.LastActivityAt=DateTimeOffset.UtcNow;}store.Save(r);await Clients.Group(c).SendAsync("ParticipantReady",p.Id,ready);}
- public async Task SelectContent(string c,string content){var (r,_)=store.RequireMember(c,Context.ConnectionId);lock(r.Gate){r.Content=content;r.LastActivityAt=DateTimeOffset.UtcNow;}store.Save(r);await Clients.Group(c).SendAsync("ContentSelected",content);}
+ public async Task SelectContent(string c,string content){await SelectMedia(c,new ContentSelection(content,"other",null));}
+ public async Task SelectMedia(string c,ContentSelection selection){var (r,_)=store.RequireMember(c,Context.ConnectionId);var clean=new ContentSelection(selection.Title.Trim(),selection.Provider.Trim().ToLowerInvariant(),string.IsNullOrWhiteSpace(selection.Url)?null:selection.Url.Trim());if(string.IsNullOrWhiteSpace(clean.Title))throw new HubException("Choose something to watch.");lock(r.Gate){r.Selection=clean;r.Content=clean.Title;r.LastActivityAt=DateTimeOffset.UtcNow;}store.Save(r);await Clients.Group(c).SendAsync("MediaSelected",clean);await Clients.Group(c).SendAsync("ContentSelected",clean.Title);}
  public async Task PlaybackChanged(string c,double pos,bool playing){var (r,_)=store.RequireMember(c,Context.ConnectionId);Playback next;lock(r.Gate){next=new(Math.Max(0,pos),playing,r.Playback.Sequence+1,DateTimeOffset.UtcNow);r.Playback=next;r.LastActivityAt=DateTimeOffset.UtcNow;}store.Save(r);await Clients.Group(c).SendAsync("PlaybackChanged",next);}
  public Task React(string c,string emoji){var (r,_)=store.RequireMember(c,Context.ConnectionId);lock(r.Gate)r.LastActivityAt=DateTimeOffset.UtcNow;store.Save(r);return Clients.OthersInGroup(c).SendAsync("ReactionSet",emoji);}
  public async Task EndRoom(string c){var (r,_)=store.RequireMember(c,Context.ConnectionId);lock(r.Gate){r.Ended=true;r.LastActivityAt=DateTimeOffset.UtcNow;}store.Save(r);await Clients.Group(c).SendAsync("RoomEnded");}
