@@ -53,6 +53,7 @@ public sealed class RoomStore {
   Participant p;lock(r.Gate){var i=r.Participants.FindIndex(x=>x.Id==link.ParticipantId);if(i<0)return null;p=r.Participants[i] with{Online=false,Ready=false};r.Participants[i]=p;r.LastActivityAt=DateTimeOffset.UtcNow;}Persist(r);return(link.Code,p);
  }
  public void Save(Room r)=>Persist(r);
+ public (Room Room,Participant Participant) RequireMember(string code,string connectionId){if(!connections.TryGetValue(connectionId,out var link)||link.Code!=code)throw new HubException("Join the room before changing it.");var r=Get(code)??throw new HubException("Room not found");var p=r.Participants.SingleOrDefault(x=>x.Id==link.ParticipantId&&x.Online)??throw new HubException("Participant is not connected");return(r,p);}
  void LoadPersisted(){
   if(dbFactory is null)return;using var db=dbFactory.CreateDbContext();foreach(var e in db.Rooms.AsNoTracking().Include(x=>x.Participants).Where(x=>!x.Ended)){
    var r=new Room{Code=e.Code,Content=e.Content,Playback=new(e.PlaybackPosition,e.PlaybackPlaying,e.PlaybackSequence,e.PlaybackUpdatedAt),Ended=e.Ended,LastActivityAt=e.LastActivityAt};
@@ -73,11 +74,11 @@ public sealed class RoomStore {
 sealed class RoomHub(RoomStore store):Hub {
  Room Get(string c)=>store.Get(c)??throw new HubException("Room not found");
  public async Task JoinRoom(string c,string name){var p=store.Join(c,Context.ConnectionId,name);await Groups.AddToGroupAsync(Context.ConnectionId,c);await Clients.Group(c).SendAsync("ParticipantJoined",p);}
- public async Task SetReady(string c,string name,bool ready){var r=Get(c);lock(r.Gate){var i=r.Participants.FindLastIndex(x=>x.Name.Equals(name,StringComparison.OrdinalIgnoreCase)&&x.Online);if(i<0)return;var id=r.Participants[i].Id;r.Participants[i]=r.Participants[i] with{Ready=ready};Clients.Group(c).SendAsync("ParticipantReady",id,ready).GetAwaiter().GetResult();}}
- public async Task SelectContent(string c,string content){var r=Get(c);lock(r.Gate){r.Content=content;r.LastActivityAt=DateTimeOffset.UtcNow;}store.Save(r);await Clients.Group(c).SendAsync("ContentSelected",content);}
- public async Task PlaybackChanged(string c,double pos,bool playing){var r=Get(c);Playback next;lock(r.Gate){next=new(Math.Max(0,pos),playing,r.Playback.Sequence+1,DateTimeOffset.UtcNow);r.Playback=next;r.LastActivityAt=DateTimeOffset.UtcNow;}store.Save(r);await Clients.Group(c).SendAsync("PlaybackChanged",next);}
- public Task React(string c,string emoji)=>Clients.OthersInGroup(c).SendAsync("ReactionSet",emoji);
- public async Task EndRoom(string c){var r=Get(c);lock(r.Gate){r.Ended=true;r.LastActivityAt=DateTimeOffset.UtcNow;}store.Save(r);await Clients.Group(c).SendAsync("RoomEnded");}
+ public async Task SetReady(string c,bool ready){var (r,p)=store.RequireMember(c,Context.ConnectionId);lock(r.Gate){var i=r.Participants.FindIndex(x=>x.Id==p.Id);r.Participants[i]=r.Participants[i] with{Ready=ready};r.LastActivityAt=DateTimeOffset.UtcNow;}store.Save(r);await Clients.Group(c).SendAsync("ParticipantReady",p.Id,ready);}
+ public async Task SelectContent(string c,string content){var (r,_)=store.RequireMember(c,Context.ConnectionId);lock(r.Gate){r.Content=content;r.LastActivityAt=DateTimeOffset.UtcNow;}store.Save(r);await Clients.Group(c).SendAsync("ContentSelected",content);}
+ public async Task PlaybackChanged(string c,double pos,bool playing){var (r,_)=store.RequireMember(c,Context.ConnectionId);Playback next;lock(r.Gate){next=new(Math.Max(0,pos),playing,r.Playback.Sequence+1,DateTimeOffset.UtcNow);r.Playback=next;r.LastActivityAt=DateTimeOffset.UtcNow;}store.Save(r);await Clients.Group(c).SendAsync("PlaybackChanged",next);}
+ public Task React(string c,string emoji){var (r,_)=store.RequireMember(c,Context.ConnectionId);lock(r.Gate)r.LastActivityAt=DateTimeOffset.UtcNow;store.Save(r);return Clients.OthersInGroup(c).SendAsync("ReactionSet",emoji);}
+ public async Task EndRoom(string c){var (r,_)=store.RequireMember(c,Context.ConnectionId);lock(r.Gate){r.Ended=true;r.LastActivityAt=DateTimeOffset.UtcNow;}store.Save(r);await Clients.Group(c).SendAsync("RoomEnded");}
  public override async Task OnDisconnectedAsync(Exception? exception){var left=store.Leave(Context.ConnectionId);if(left is {} x)await Clients.Group(x.Code).SendAsync("ParticipantLeft",x.Participant);await base.OnDisconnectedAsync(exception);}
 }
 
