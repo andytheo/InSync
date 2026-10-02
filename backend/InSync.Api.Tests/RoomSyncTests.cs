@@ -19,6 +19,15 @@ public class RoomSyncTests : IClassFixture<WebApplicationFactory<Program>> {
   var afterReturn=await http.GetFromJsonAsync<RoomStateDto>($"/api/rooms/{created.code}");var returned=Assert.Single(afterReturn!.participants,x=>x.name=="Guest");Assert.True(returned.online);Assert.Equal(id,returned.id);
   await b.DisposeAsync();
  }
+ [Fact] public async Task Non_member_cannot_change_room_state(){
+  var http=factory.CreateClient();var created=await (await http.PostAsJsonAsync("/api/rooms",new {name="Host"})).Content.ReadFromJsonAsync<RoomDto>();Assert.NotNull(created);
+  var outsider=Connect();await outsider.StartAsync();await Assert.ThrowsAsync<HubException>(()=>outsider.InvokeAsync("PlaybackChanged",created!.code,99d,true));await outsider.DisposeAsync();
+ }
+ [Fact] public async Task Duplicate_names_update_ready_by_connection_identity(){
+  var http=factory.CreateClient();var created=await (await http.PostAsJsonAsync("/api/rooms",new {name="Host"})).Content.ReadFromJsonAsync<RoomDto>();Assert.NotNull(created);
+  var a=Connect();var b=Connect();await a.StartAsync();await b.StartAsync();await a.InvokeAsync("JoinRoom",created!.code,"Same");await b.InvokeAsync("JoinRoom",created.code,"Same");await a.InvokeAsync("SetReady",created.code,true);
+  var state=await http.GetFromJsonAsync<RoomStateDto>($"/api/rooms/{created.code}");Assert.Equal(2,state!.participants.Count(x=>x.name=="Same"));Assert.Single(state.participants,x=>x.name=="Same"&&x.ready);await a.DisposeAsync();await b.DisposeAsync();
+ }
  [Fact] public async Task Health_endpoint_is_available(){var r=await factory.CreateClient().GetAsync("/health");Assert.True(r.IsSuccessStatusCode);}
  [Fact] public async Task Ended_room_is_removed_by_cleanup(){
   var http=factory.CreateClient();var created=await (await http.PostAsJsonAsync("/api/rooms",new {name="Host"})).Content.ReadFromJsonAsync<RoomDto>();Assert.NotNull(created);
