@@ -1,13 +1,17 @@
 using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
+using Microsoft.EntityFrameworkCore;
 
 var b=WebApplication.CreateBuilder(args);
 b.Services.AddSignalR();
+var dbConnection=b.Configuration.GetConnectionString("InSync");
+if(!string.IsNullOrWhiteSpace(dbConnection)) b.Services.AddDbContextFactory<InSyncDbContext>(o=>o.UseNpgsql(dbConnection));
 b.Services.AddSingleton<RoomStore>();
 b.Services.AddHostedService<RoomCleanupService>();
 b.Services.AddCors(o=>o.AddDefaultPolicy(p=>p.AllowAnyHeader().AllowAnyMethod().SetIsOriginAllowed(_=>true).AllowCredentials()));
 var app=b.Build();
 app.UseCors();
+if(!string.IsNullOrWhiteSpace(dbConnection)){using var scope=app.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<InSyncDbContext>();await db.Database.MigrateAsync();}
 
 app.MapGet("/health",()=>Results.Ok(new {status="ok",time=DateTimeOffset.UtcNow}));
 app.MapPost("/api/rooms",(CreateRoom x,RoomStore s)=>Results.Ok(s.Create(x.Name)));
