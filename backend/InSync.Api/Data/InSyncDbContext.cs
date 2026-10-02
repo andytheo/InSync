@@ -15,6 +15,8 @@ public sealed class InSyncDbContext(DbContextOptions<InSyncDbContext> options):D
 public sealed class RoomEntity {
  public string Code {get;set;}="";
  public string? Content {get;set;}
+ public string? Provider {get;set;}
+ public string? MediaUrl {get;set;}
  public double PlaybackPosition {get;set;}
  public bool PlaybackPlaying {get;set;}
  public long PlaybackSequence {get;set;}
