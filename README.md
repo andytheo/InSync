@@ -4,7 +4,7 @@ A private, cross-platform watch-together companion for people who are apart.
 
 ## Current milestone
 
-Two real phones can create/join the same room and synchronize playback state through the ASP.NET Core + SignalR backend. The mobile app now includes the first date-night UI, room presence, shared content selection, ready state, reactions, and synchronized play/pause/seek controls.
+Two real phones can create/join the same room and synchronize playback state through the ASP.NET Core + SignalR backend. The mobile app now includes embedded YouTube playback, room presence, shared video selection, ready gating, a server-authoritative synchronized countdown, play/pause/seek/scrub synchronization, drift correction, reactions, and reconnect state restoration. The remaining gate for this milestone is physical iPhone/Android WebView validation.
 
 ## Roadmap
 
@@ -36,10 +36,10 @@ Two real phones can create/join the same room and synchronize playback state thr
 ### P2 — Real watch-together experience
 - [x] Provider-neutral content model (title, provider, deep link)
 - [x] Open supported streaming links without collecting provider passwords
-- [ ] Start-together countdown
-- [ ] Real playback timeline and drift correction
+- [x] Server-authoritative start-together countdown
+- [x] Real playback timeline and drift correction
 - [ ] Provider capability detection
-- [x] First YouTube embedded playback integration (physical-device validation pending)
+- [x] YouTube embedded playback bridge with play/pause/seek/scrub synchronization (physical-device validation pending)
 - [ ] Investigate/implement official Apple SharePlay integration
 - [ ] Netflix / Prime Video / Disney+ / Hulu: integrate only through supported APIs, deep links, or platform capabilities; never bypass DRM
 
