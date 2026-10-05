@@ -29,7 +29,7 @@ var app=b.Build();
 if(!app.Environment.IsDevelopment()){app.UseHsts();app.UseHttpsRedirection();}
 app.UseCors();
 app.UseRateLimiter();
-if(!string.IsNullOrWhiteSpace(dbConnection)){await using var db=await app.Services.GetRequiredService<IDbContextFactory<InSyncDbContext>>().CreateDbContextAsync();await db.Database.MigrateAsync();}
+if(!string.IsNullOrWhiteSpace(dbConnection)){await using var db=await app.Services.GetRequiredService<IDbContextFactory<InSyncDbContext>>().CreateDbContextAsync();await db.Database.EnsureCreatedAsync();}
 app.Services.GetRequiredService<RoomStore>();
 // Database migrations must finish before persisted rooms are loaded.
 
