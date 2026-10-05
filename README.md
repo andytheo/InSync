@@ -1,63 +1,62 @@
 # InSync
 
-A private, cross-platform watch-together companion for people who are apart.
+A private, cross-platform watch-together companion for two people who are apart.
 
-## Current milestone
+## V1
 
-Two real phones can create/join the same room and synchronize playback state through the ASP.NET Core + SignalR backend. The mobile app now includes embedded YouTube playback, room presence, shared video selection, ready gating, a server-authoritative synchronized countdown, play/pause/seek/scrub synchronization, drift correction, reactions, and reconnect state restoration. The remaining gate for this milestone is physical iPhone/Android WebView validation.
+InSync V1 is intentionally narrow: create a private room, invite one other person, paste a YouTube link, watch the embedded video on both phones, synchronize play/pause/seek, react, and recover after reconnects.
 
-## Roadmap
+Two physical phones have already validated the core embedded YouTube synchronization flow. V1 does not host or rebroadcast video and does not collect streaming-service credentials.
 
-### P0 — Make the core reliable
-- [x] Create a private six-digit room
-- [x] Join from a second physical phone
-- [x] Server-authoritative play/pause/seek synchronization
-- [x] Participant presence
-- [x] Shared content selection
-- [x] Ready state
-- [x] Reactions
-- [x] Mobile-first v0.1 UI
-- [x] Fix participant identity so reconnects do not create duplicates
-- [x] Track disconnects and remove/offline participants correctly
-- [x] Make playback sequence updates concurrency-safe
-- [x] Add room expiration and cleanup
-- [x] Add API health endpoint and connection diagnostics
-- [x] Integration tests for playback, reconnect, cleanup, authorization, media, ready/content/reactions
+## Release status
 
-### P1 — Persistent, secure rooms
+### Core experience
+- [x] Two-person private rooms
+- [x] Cryptographically generated eight-character invite codes
+- [x] Connection-bound room authorization
+- [x] Participant presence and reconnect restoration
+- [x] Shared YouTube selection
+- [x] Embedded YouTube playback on both physical phones
+- [x] Server-authoritative play/pause/seek state
+- [x] Drift correction and feedback-loop suppression
+- [x] Fixed emoji reactions
+- [x] Room expiration and cleanup
 - [x] PostgreSQL + EF Core persistence
-- [x] Connection-bound guest identity and room command authorization
-- [ ] Non-guessable invite links/tokens
-- [ ] Host permissions and room lifecycle
-- [ ] Rate limiting and abuse protection
-- [ ] Production HTTPS configuration
-- [ ] Minimal privacy-safe telemetry and error reporting
 
-### P2 — Real watch-together experience
-- [x] Provider-neutral content model (title, provider, deep link)
-- [x] Open supported streaming links without collecting provider passwords
-- [x] Server-authoritative start-together countdown
-- [x] Real playback timeline and drift correction
-- [ ] Provider capability detection
-- [x] YouTube embedded playback bridge with play/pause/seek/scrub synchronization (physical-device validation pending)
-- [ ] Investigate/implement official Apple SharePlay integration
-- [ ] Netflix / Prime Video / Disney+ / Hulu: integrate only through supported APIs, deep links, or platform capabilities; never bypass DRM
+### Production hardening
+- [x] API health and database readiness endpoints
+- [x] Production requires PostgreSQL configuration
+- [x] Production mobile builds require an HTTPS API
+- [x] Production CORS allow-list
+- [x] HTTP/SignalR connection rate limits
+- [x] SignalR message-size limit
+- [x] Two-person room capacity enforcement
+- [x] Bounded/validated names, URLs, media, playback, and reactions
+- [x] Docker production image + CI build verification
+- [x] Backend integration tests + mobile TypeScript CI
+- [x] Stable iOS/Android identifiers and EAS release profiles
+- [ ] Deploy public HTTPS/WSS API + managed PostgreSQL
+- [ ] Production monitoring/error reporting
+- [ ] Load/capacity test deployed environment
+- [ ] Cross-network iPhone/Android beta
 
-### P3 — Date-night features
-- [ ] In-room text chat
-- [ ] Managed voice/video calling integration
-- [ ] Content voting / watchlist
-- [ ] Scheduled date nights and reminders
-- [ ] Room history / favorites
-
-### P4 — Release
-- [x] Automated mobile/backend CI gates
-- [ ] Production API/database deployment
-- [ ] App icons, splash screen, accessibility and polish
-- [ ] Privacy policy / terms / account deletion
+### Store release
+- [ ] App icon, splash and final accessibility pass
+- [ ] Privacy policy, terms and support URL
+- [ ] Store privacy/data-safety declarations
 - [ ] TestFlight beta
-- [ ] Android closed beta
-- [ ] App Store / Play Store release readiness
+- [ ] Google Play testing
+- [ ] App Store / Play Store submission
+
+## Architecture
+
+- Mobile: Expo + React Native + TypeScript
+- Realtime: ASP.NET Core SignalR
+- API: ASP.NET Core / .NET 8
+- Persistence: PostgreSQL + EF Core
+- Video: official embedded YouTube player; video traffic does not pass through the InSync backend
+
+The first production deployment should use one API instance. Room membership and SignalR groups currently live in process. Horizontal scaling requires distributed room state and a SignalR backplane/service before adding replicas.
 
 ## Development
 
@@ -68,11 +67,11 @@ cd backend/InSync.Api
 dotnet run --urls "http://0.0.0.0:5000"
 ```
 
-Mobile on the current development Wi-Fi:
+Mobile on development Wi-Fi:
 
 ```powershell
 cd apps/mobile
 npm run start:phone
 ```
 
-The current phone script is for local development only. Production builds will use a deployed HTTPS API URL.
+Production builds use `EXPO_PUBLIC_API_URL=https://<production-api-host>`; localhost/LAN endpoints are development-only. See `docs/production-readiness.md`.
