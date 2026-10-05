@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
+[Migration("20261002194000_InitialPersistence")]
 public partial class InitialPersistence : Migration {
  protected override void Up(MigrationBuilder migrationBuilder){
   migrationBuilder.CreateTable(name:"Rooms",columns:table=>new{
