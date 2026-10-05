@@ -27,7 +27,7 @@ b.Services.AddCors(o=>o.AddDefaultPolicy(p=>{
  if(b.Environment.IsDevelopment())p.SetIsOriginAllowed(_=>true);else p.WithOrigins(allowedOrigins);
 }));
 var app=b.Build();
-if(!app.Environment.IsDevelopment()){app.UseHsts();app.UseHttpsRedirection();}
+if(!app.Environment.IsDevelopment())app.UseHsts();
 app.UseCors();
 app.UseRateLimiter();
 if(!string.IsNullOrWhiteSpace(dbConnection)){await using var db=await app.Services.GetRequiredService<IDbContextFactory<InSyncDbContext>>().CreateDbContextAsync();await db.Database.EnsureCreatedAsync();await db.Database.ExecuteSqlRawAsync("CREATE TABLE IF NOT EXISTS \"Rooms\" (\"Code\" character varying(8) PRIMARY KEY, \"Content\" text NULL, \"Provider\" text NULL, \"MediaUrl\" text NULL, \"PlaybackPosition\" double precision NOT NULL DEFAULT 0, \"PlaybackPlaying\" boolean NOT NULL DEFAULT false, \"PlaybackSequence\" bigint NOT NULL DEFAULT 0, \"PlaybackUpdatedAt\" timestamp with time zone NOT NULL DEFAULT now(), \"Ended\" boolean NOT NULL DEFAULT false, \"CreatedAt\" timestamp with time zone NOT NULL DEFAULT now(), \"LastActivityAt\" timestamp with time zone NOT NULL DEFAULT now())");await db.Database.ExecuteSqlRawAsync("CREATE TABLE IF NOT EXISTS \"Participants\" (\"Id\" uuid PRIMARY KEY, \"RoomCode\" character varying(8) NOT NULL REFERENCES \"Rooms\"(\"Code\") ON DELETE CASCADE, \"Name\" character varying(80) NOT NULL, \"Ready\" boolean NOT NULL DEFAULT false, \"Online\" boolean NOT NULL DEFAULT false)");}
