@@ -37,7 +37,7 @@ app.MapGet("/ready",async (IServiceProvider services)=>{
 });
 app.MapPost("/api/rooms",(CreateRoom x,RoomStore s)=>{var name=(x.Name??"").Trim();return name.Length is <1 or >80?Results.BadRequest(new{error="Enter a name up to 80 characters."}):Results.Ok(s.Create(name));}).RequireRateLimiting("room-create");
 app.MapGet("/api/rooms/{code}",(string code,RoomStore s)=>s.Get(code) is {} r?Results.Ok(r):Results.NotFound()).RequireRateLimiting("room-read");
-app.MapHub<RoomHub>("/hubs/rooms").RequireRateLimiting();
+app.MapHub<RoomHub>("/hubs/rooms");
 app.Run();
 
 public partial class Program { }
