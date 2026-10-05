@@ -25,6 +25,8 @@ jobs:
         run: npx tsc --noEmit
       - name: Production publish
         run: dotnet publish backend/InSync.Api/InSync.Api.csproj --configuration Release --no-restore
+      - name: Build SignalR load harness
+        run: dotnet build tests/load/InSync.Load/InSync.Load.csproj --configuration Release
       - name: Verify no tracked secrets
         shell: bash
         run: |
