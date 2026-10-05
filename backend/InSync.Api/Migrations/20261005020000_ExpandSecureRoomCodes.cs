@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
+[Migration("20261005020000_ExpandSecureRoomCodes")]
 public partial class ExpandSecureRoomCodes : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
