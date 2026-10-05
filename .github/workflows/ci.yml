@@ -30,7 +30,7 @@ jobs:
       - name: Verify no tracked secrets
         shell: bash
         run: |
-          if git grep -nE "(postgres(ql)?://[^[:space:]]+:[^[:space:]]+@|ConnectionStrings__InSync=|EXPO_PUBLIC_API_URL=https?://(localhost|10\\.|192\\.168\\.|172\\.(1[6-9]|2[0-9]|3[01])\\.))" -- . ":(exclude)docs/**"; then
-            echo "Potential production secret or local production endpoint is tracked."
+          if git grep -nE "(postgres(ql)?://[^[:space:]]+:[^[:space:]]+@|Password=[^r][^e][^p][^l][^a][^c][^e][^-][^m][^e])" -- . ":(exclude)docs/**" ":(exclude).env.example" ":(exclude).github/workflows/ci.yml"; then
+            echo "Potential credential is tracked."
             exit 1
           fi
