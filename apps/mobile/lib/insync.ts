@@ -1,7 +1,8 @@
 import { HubConnection, HubConnectionBuilder, HttpTransportType, LogLevel } from "@microsoft/signalr";
 export type Participant={id:string;name:string;ready:boolean;online:boolean};
 export type ContentSelection={title:string;provider:string;url?:string};
-export type ChatMessage={id:string;senderId:string;senderName:string;text:string;sentAt:string};\nexport type Playback={position:number;playing:boolean;sequence:number;updatedAt:string};
+export type ChatMessage={id:string;senderId:string;senderName:string;text:string;sentAt:string};
+export type Playback={position:number;playing:boolean;sequence:number;updatedAt:string};
 export type Room={code:string;participants:Participant[];content?:string;selection?:ContentSelection;playback:Playback;ended:boolean};
 export type RoomEvents={onPlayback?:(s:Playback)=>void;onParticipant?:(p:Participant)=>void;onParticipantLeft?:(p:Participant)=>void;onMedia?:(selection:ContentSelection)=>void;onReaction?:(emoji:string)=>void;onMessage?:(message:ChatMessage)=>void;onTyping?:(participantId:string,name:string,typing:boolean)=>void;onEnded?:()=>void};
 export function expectedPlaybackPosition(p:Playback,now=Date.now()){const updated=Date.parse(p.updatedAt);if(!p.playing||!Number.isFinite(updated))return Math.max(0,p.position);return Math.max(0,p.position+Math.max(0,(now-updated)/1000));}
