@@ -20,7 +20,7 @@ if(!b.Environment.IsDevelopment()&&string.IsNullOrWhiteSpace(dbConnection))throw
 if(!b.Environment.IsDevelopment()&&allowedOrigins.Length==0)throw new InvalidOperationException("Production requires AllowedOrigins.");
 if(!string.IsNullOrWhiteSpace(dbConnection)) b.Services.AddDbContextFactory<InSyncDbContext>(o=>o.UseNpgsql(dbConnection));
 b.Services.AddSingleton<RoomStore>(sp=>new RoomStore(sp.GetService<IDbContextFactory<InSyncDbContext>>(),sp.GetRequiredService<ILogger<RoomStore>>()));
-b.Services.AddHostedService<RoomCleanupService>();
+
 b.Services.AddCors(o=>o.AddDefaultPolicy(p=>{
  p.AllowAnyHeader().AllowAnyMethod().AllowCredentials();
  if(b.Environment.IsDevelopment())p.SetIsOriginAllowed(_=>true);else p.WithOrigins(allowedOrigins);
@@ -29,7 +29,8 @@ var app=b.Build();
 if(!app.Environment.IsDevelopment()){app.UseHsts();app.UseHttpsRedirection();}
 app.UseCors();
 app.UseRateLimiter();
-if(!string.IsNullOrWhiteSpace(dbConnection)){using var scope=app.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<InSyncDbContext>();await db.Database.MigrateAsync();}
+if(!string.IsNullOrWhiteSpace(dbConnection)){await using var db=await app.Services.GetRequiredService<IDbContextFactory<InSyncDbContext>>().CreateDbContextAsync();await db.Database.MigrateAsync();}
+app.Services.GetRequiredService<RoomStore>();
 
 app.MapGet("/health",()=>Results.Ok(new {status="ok",time=DateTimeOffset.UtcNow}));
 app.MapGet("/ready",async (IServiceProvider services)=>{
