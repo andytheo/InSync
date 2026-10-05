@@ -30,7 +30,8 @@ The mobile production build intentionally fails fast unless `EXPO_PUBLIC_API_URL
 - Room commands require a joined connection.
 - Playback positions, names, URLs, media metadata, and reactions are bounded/validated.
 - Inactive rooms expire and persisted state is deleted.
-- CI runs backend integration tests and TypeScript checks.
+- Active playback persistence is checkpointed instead of writing every realtime sync update; pauses and structural room changes persist immediately.
+- CI runs backend integration tests, a release publish, the SignalR load-harness build, secret checks, TypeScript checks, and production-container builds.
 
 ## Remaining release blockers
 - [done] Cryptographically generated eight-character private invite codes.
