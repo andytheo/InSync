@@ -3,7 +3,8 @@ using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
-using System.Security.Cryptography;\nusing Npgsql;
+using System.Security.Cryptography;
+using Npgsql;
 
 var b=WebApplication.CreateBuilder(args);
 b.Services.AddSignalR(o=>{o.MaximumReceiveMessageSize=32*1024;o.EnableDetailedErrors=b.Environment.IsDevelopment();});
