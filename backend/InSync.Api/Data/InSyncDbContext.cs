@@ -5,7 +5,7 @@ public sealed class InSyncDbContext(DbContextOptions<InSyncDbContext> options):D
  public DbSet<ParticipantEntity> Participants => Set<ParticipantEntity>();
  protected override void OnModelCreating(ModelBuilder b){
   b.Entity<RoomEntity>().HasKey(x=>x.Code);
-  b.Entity<RoomEntity>().Property(x=>x.Code).HasMaxLength(6);
+  b.Entity<RoomEntity>().Property(x=>x.Code).HasMaxLength(8);
   b.Entity<RoomEntity>().HasMany(x=>x.Participants).WithOne().HasForeignKey(x=>x.RoomCode).OnDelete(DeleteBehavior.Cascade);
   b.Entity<ParticipantEntity>().HasKey(x=>x.Id);
   b.Entity<ParticipantEntity>().Property(x=>x.Id).ValueGeneratedNever();
