@@ -59,6 +59,12 @@ public class RoomSyncTests : IClassFixture<WebApplicationFactory<Program>> {
   var factory=new TestDbFactory(options);var first=new RoomStore(factory);var room=first.Create("Host");var guest=first.Join(room.Code,"connection-1","Guest");room.Content="Movie night";room.Playback=new Playback(123,true,7,DateTimeOffset.UtcNow);first.Save(room);
   var restored=new RoomStore(factory);var loaded=restored.Get(room.Code);Assert.NotNull(loaded);Assert.Equal("Movie night",loaded!.Content);Assert.Equal(123,loaded.Playback.Position);Assert.Equal(7,loaded.Playback.Sequence);Assert.Contains(loaded.Participants,x=>x.Id==guest.Id&&x.Name=="Guest");Assert.All(loaded.Participants,x=>Assert.False(x.Online));
  }
+ [Fact] public void Active_playback_persistence_is_checkpointed(){
+  using var connection=new SqliteConnection("Data Source=:memory:");connection.Open();var options=new DbContextOptionsBuilder<InSyncDbContext>().UseSqlite(connection).Options;using(var db=new InSyncDbContext(options))db.Database.EnsureCreated();
+  var dbFactory=new TestDbFactory(options);var store=new RoomStore(dbFactory);var room=store.Create("Host");room.Playback=new Playback(10,true,1,DateTimeOffset.UtcNow);store.SavePlaybackCheckpoint(room);room.Playback=new Playback(20,true,2,DateTimeOffset.UtcNow);store.SavePlaybackCheckpoint(room);
+  using var verify=new InSyncDbContext(options);var persisted=verify.Rooms.AsNoTracking().Single(x=>x.Code==room.Code);Assert.Equal(10,persisted.PlaybackPosition);Assert.Equal(1,persisted.PlaybackSequence);
+  room.Playback=new Playback(20,false,3,DateTimeOffset.UtcNow);store.SavePlaybackCheckpoint(room);using var verifyPause=new InSyncDbContext(options);var paused=verifyPause.Rooms.AsNoTracking().Single(x=>x.Code==room.Code);Assert.Equal(20,paused.PlaybackPosition);Assert.Equal(3,paused.PlaybackSequence);
+ }
  sealed class TestDbFactory(DbContextOptions<InSyncDbContext> options):IDbContextFactory<InSyncDbContext>{public InSyncDbContext CreateDbContext()=>new(options);}
  HubConnection Connect()=>new HubConnectionBuilder().WithUrl(new Uri(factory.Server.BaseAddress,"/hubs/rooms"),o=>o.HttpMessageHandlerFactory=_=>factory.Server.CreateHandler()).Build();
  static async Task Wait(Func<bool> ok){for(var i=0;i<50&&!ok();i++)await Task.Delay(20);Assert.True(ok());}
