@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
-using System.Security.Cryptography;
+using System.Security.Cryptography;\nusing Npgsql;
 
 var b=WebApplication.CreateBuilder(args);
 b.Services.AddSignalR(o=>{o.MaximumReceiveMessageSize=32*1024;o.EnableDetailedErrors=b.Environment.IsDevelopment();});
@@ -13,7 +13,7 @@ b.Services.AddRateLimiter(o=>{
  o.AddFixedWindowLimiter("room-read",x=>{x.PermitLimit=120;x.Window=TimeSpan.FromMinutes(1);x.QueueLimit=0;x.AutoReplenishment=true;});
  o.GlobalLimiter=PartitionedRateLimiter.Create<HttpContext,string>(ctx=>RateLimitPartition.GetFixedWindowLimiter(ctx.Connection.RemoteIpAddress?.ToString()??"unknown",_=>new FixedWindowRateLimiterOptions{PermitLimit=300,Window=TimeSpan.FromMinutes(1),QueueLimit=0,AutoReplenishment=true}));
 });
-var dbConnection=b.Configuration.GetConnectionString("InSync");
+var dbConnection=NormalizePostgresConnectionString(b.Configuration.GetConnectionString("InSync"));
 var allowedOrigins=(b.Configuration["AllowedOrigins"]??"").Split(',',StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries);
 if(!b.Environment.IsDevelopment()&&string.IsNullOrWhiteSpace(dbConnection))throw new InvalidOperationException("Production requires ConnectionStrings__InSync.");
 if(!b.Environment.IsDevelopment()&&allowedOrigins.Length==0)throw new InvalidOperationException("Production requires AllowedOrigins.");
