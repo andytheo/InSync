@@ -41,6 +41,21 @@ app.MapGet("/api/rooms/{code}",(string code,RoomStore s)=>s.Get(code) is {} r?Re
 app.MapHub<RoomHub>("/hubs/rooms");
 app.Run();
 
+static string? NormalizePostgresConnectionString(string? value){
+ if(string.IsNullOrWhiteSpace(value))return value;
+ if(!Uri.TryCreate(value,UriKind.Absolute,out var uri)||(uri.Scheme!="postgres"&&uri.Scheme!="postgresql"))return value;
+ var userInfo=uri.UserInfo.Split(':',2);
+ if(userInfo.Length!=2)throw new InvalidOperationException("PostgreSQL URL must include username and password.");
+ var database=Uri.UnescapeDataString(uri.AbsolutePath.TrimStart('/'));
+ if(string.IsNullOrWhiteSpace(database))throw new InvalidOperationException("PostgreSQL URL must include a database name.");
+ var csb=new NpgsqlConnectionStringBuilder{
+  Host=uri.Host,Port=uri.IsDefaultPort?5432:uri.Port,Database=database,
+  Username=Uri.UnescapeDataString(userInfo[0]),Password=Uri.UnescapeDataString(userInfo[1]),
+  SslMode=SslMode.Prefer
+ };
+ return csb.ConnectionString;
+}
+
 public partial class Program { }
 record CreateRoom(string? Name);
 public record Participant(Guid Id,string Name,bool Ready=false,bool Online=true);
