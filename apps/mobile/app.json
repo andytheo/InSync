@@ -1,1 +1,18 @@
-{"expo":{"name":"InSync","slug":"insync","version":"0.1.0","scheme":"insync","plugins":["expo-router"]}}
+{
+  "expo": {
+    "name": "InSync",
+    "slug": "insync",
+    "version": "0.1.0",
+    "scheme": "insync",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "plugins": ["expo-router"],
+    "ios": {
+      "bundleIdentifier": "app.insync.watch",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "app.insync.watch"
+    }
+  }
+}
