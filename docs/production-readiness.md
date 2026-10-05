@@ -18,7 +18,7 @@ The mobile production build intentionally fails fast unless `EXPO_PUBLIC_API_URL
 4. Verify `GET /health` and `GET /ready`; readiness must report a connected database.
 5. Build mobile with `EXPO_PUBLIC_API_URL=https://<production-api-host>`.
 6. Test iPhone and Android on different networks, including cellular, reconnect/background/foreground, invalid links, changing videos, and 30–60 minute sessions.
-7. Run concurrency/load tests before public beta. Current V1 architecture should initially deploy as a single API instance because room membership and SignalR groups are held in process. Horizontal scaling requires a distributed room-state strategy and SignalR backplane/service first.
+7. Run the baseline load test with `k6 run -e BASE_URL=https://<production-api-host> tests/load/rooms.js`, then exercise paired SignalR sessions. Current V1 architecture should initially deploy as a single API instance because room membership and SignalR groups are held in process. Horizontal scaling requires a distributed room-state strategy and SignalR backplane/service first.
 
 ## Protection already in place
 - Production refuses to run without PostgreSQL.
@@ -33,7 +33,7 @@ The mobile production build intentionally fails fast unless `EXPO_PUBLIC_API_URL
 - CI runs backend integration tests and TypeScript checks.
 
 ## Remaining release blockers
-- Secure non-guessable invite capability instead of relying only on a six-digit code.
+- [done] Cryptographically generated eight-character private invite codes.
 - Host/room ownership lifecycle.
 - Production error monitoring and privacy-safe operational metrics.
 - Load test the deployed topology and establish capacity limits.
