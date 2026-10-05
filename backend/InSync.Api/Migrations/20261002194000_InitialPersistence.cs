@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 #nullable disable
 
+[DbContext(typeof(InSyncDbContext))]
 [Migration("20261002194000_InitialPersistence")]
 public partial class InitialPersistence : Migration {
  protected override void Up(MigrationBuilder migrationBuilder){
