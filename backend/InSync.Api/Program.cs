@@ -1,21 +1,39 @@
 using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 var b=WebApplication.CreateBuilder(args);
-b.Services.AddSignalR();
+b.Services.AddSignalR(o=>{o.MaximumReceiveMessageSize=32*1024;o.EnableDetailedErrors=b.Environment.IsDevelopment();});
+b.Services.AddRateLimiter(o=>{
+ o.RejectionStatusCode=StatusCodes.Status429TooManyRequests;
+ o.AddFixedWindowLimiter("room-create",x=>{x.PermitLimit=20;x.Window=TimeSpan.FromMinutes(1);x.QueueLimit=0;x.AutoReplenishment=true;});
+ o.AddFixedWindowLimiter("room-read",x=>{x.PermitLimit=120;x.Window=TimeSpan.FromMinutes(1);x.QueueLimit=0;x.AutoReplenishment=true;});
+});
 var dbConnection=b.Configuration.GetConnectionString("InSync");
+var allowedOrigins=(b.Configuration["AllowedOrigins"]??"").Split(',',StringSplitOptions.RemoveEmptyEntries|StringSplitOptions.TrimEntries);
+if(!b.Environment.IsDevelopment()&&string.IsNullOrWhiteSpace(dbConnection))throw new InvalidOperationException("Production requires ConnectionStrings__InSync.");
+if(!b.Environment.IsDevelopment()&&allowedOrigins.Length==0)throw new InvalidOperationException("Production requires AllowedOrigins.");
 if(!string.IsNullOrWhiteSpace(dbConnection)) b.Services.AddDbContextFactory<InSyncDbContext>(o=>o.UseNpgsql(dbConnection));
 b.Services.AddSingleton<RoomStore>(sp=>new RoomStore(sp.GetService<IDbContextFactory<InSyncDbContext>>()));
 b.Services.AddHostedService<RoomCleanupService>();
-b.Services.AddCors(o=>o.AddDefaultPolicy(p=>p.AllowAnyHeader().AllowAnyMethod().SetIsOriginAllowed(_=>true).AllowCredentials()));
+b.Services.AddCors(o=>o.AddDefaultPolicy(p=>{
+ p.AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+ if(b.Environment.IsDevelopment())p.SetIsOriginAllowed(_=>true);else p.WithOrigins(allowedOrigins);
+}));
 var app=b.Build();
 app.UseCors();
+app.UseRateLimiter();
 if(!string.IsNullOrWhiteSpace(dbConnection)){using var scope=app.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<InSyncDbContext>();await db.Database.MigrateAsync();}
 
-app.MapGet("/health",()=>Results.Ok(new {status="ok",time=DateTimeOffset.UtcNow}));
-app.MapPost("/api/rooms",(CreateRoom x,RoomStore s)=>{var name=(x.Name??"").Trim();return name.Length is <1 or >80?Results.BadRequest(new{error="Enter a name up to 80 characters."}):Results.Ok(s.Create(name));});
-app.MapGet("/api/rooms/{code}",(string code,RoomStore s)=>s.Get(code) is {} r?Results.Ok(r):Results.NotFound());
+app.MapGet("/health",()=>Results.Ok(new {status="ok",environment=app.Environment.EnvironmentName,databaseConfigured=!string.IsNullOrWhiteSpace(dbConnection),time=DateTimeOffset.UtcNow}));
+app.MapGet("/ready",async (IServiceProvider services)=>{
+ if(string.IsNullOrWhiteSpace(dbConnection))return app.Environment.IsDevelopment()?Results.Ok(new{status="ready",database="disabled"}):Results.StatusCode(503);
+ try{await using var scope=services.CreateAsyncScope();var factory=scope.ServiceProvider.GetRequiredService<IDbContextFactory<InSyncDbContext>>();await using var db=await factory.CreateDbContextAsync();return await db.Database.CanConnectAsync()?Results.Ok(new{status="ready",database="connected"}):Results.StatusCode(503);}catch{return Results.StatusCode(503);}
+});
+app.MapPost("/api/rooms",(CreateRoom x,RoomStore s)=>{var name=(x.Name??"").Trim();return name.Length is <1 or >80?Results.BadRequest(new{error="Enter a name up to 80 characters."}):Results.Ok(s.Create(name));}).RequireRateLimiting("room-create");
+app.MapGet("/api/rooms/{code}",(string code,RoomStore s)=>s.Get(code) is {} r?Results.Ok(r):Results.NotFound()).RequireRateLimiting("room-read");
 app.MapHub<RoomHub>("/hubs/rooms");
 app.Run();
 
