@@ -31,8 +31,8 @@ public class RoomSyncTests : IClassFixture<WebApplicationFactory<Program>> {
  }
  [Fact] public async Task Private_chat_and_typing_are_shared_only_inside_room(){
   var http=factory.CreateClient();var room=await (await http.PostAsJsonAsync("/api/rooms",new{name="Host"})).Content.ReadFromJsonAsync<RoomDto>();Assert.NotNull(room);
-  var a=Connect();var b=Connect();ChatMessage? received=null;string? typingName=null;bool? typing=null;b.On<ChatMessage>("MessageReceived",x=>received=x);b.On<Guid,string,bool>("TypingChanged",(_,n,t)=>{typingName=n;typing=t;});
-  await a.StartAsync();await b.StartAsync();await a.InvokeAsync("JoinRoom",room!.code,"A");await b.InvokeAsync("JoinRoom",room.code,"B");await a.InvokeAsync("SetTyping",room.code,true);await Wait(()=>typing==true);Assert.Equal("A",typingName);await a.InvokeAsync("SendMessage",room.code,"hello");await Wait(()=>received is not null);Assert.Equal("hello",received!.Text);Assert.Equal("A",received.SenderName);var history=await b.InvokeAsync<List<ChatMessage>>("GetRecentMessages",room.code);Assert.Single(history);await a.DisposeAsync();await b.DisposeAsync();
+  var a=Connect();var b=Connect();ChatMessageDto? received=null;string? typingName=null;bool? typing=null;b.On<ChatMessageDto>("MessageReceived",x=>received=x);b.On<Guid,string,bool>("TypingChanged",(_,n,t)=>{typingName=n;typing=t;});
+  await a.StartAsync();await b.StartAsync();await a.InvokeAsync("JoinRoom",room!.code,"A");await b.InvokeAsync("JoinRoom",room.code,"B");await a.InvokeAsync("SetTyping",room.code,true);await Wait(()=>typing==true);Assert.Equal("A",typingName);await a.InvokeAsync("SendMessage",room.code,"hello");await Wait(()=>received is not null);Assert.Equal("hello",received!.Text);Assert.Equal("A",received.SenderName);var history=await b.InvokeAsync<List<ChatMessageDto>>("GetRecentMessages",room.code);Assert.Single(history);await a.DisposeAsync();await b.DisposeAsync();
  }
  [Fact] public async Task Chat_rejects_blank_and_oversized_messages(){
   var http=factory.CreateClient();var room=await (await http.PostAsJsonAsync("/api/rooms",new{name="Host"})).Content.ReadFromJsonAsync<RoomDto>();var a=Connect();await a.StartAsync();await a.InvokeAsync("JoinRoom",room!.code,"A");await Assert.ThrowsAsync<HubException>(()=>a.InvokeAsync("SendMessage",room.code,"   "));await Assert.ThrowsAsync<HubException>(()=>a.InvokeAsync("SendMessage",room.code,new string('x',501)));await a.DisposeAsync();
@@ -73,3 +73,4 @@ public class RoomSyncTests : IClassFixture<WebApplicationFactory<Program>> {
  static async Task Wait(Func<bool> ok){for(var i=0;i<50&&!ok();i++)await Task.Delay(20);Assert.True(ok());}
  record RoomDto(string code,PlaybackDto playback); record PlaybackRoomDto(string code,PlaybackDto playback); record RoomStateDto(string code,List<ParticipantDto> participants); record ParticipantDto(Guid id,string name,bool ready,bool online); record PlaybackDto(double position,bool playing,long sequence,DateTimeOffset updatedAt);
 }
+record ChatMessageDto(Guid Id,Guid SenderId,string SenderName,string Text,DateTimeOffset SentAt);
