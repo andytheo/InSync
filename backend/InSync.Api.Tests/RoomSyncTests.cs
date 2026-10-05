@@ -47,7 +47,8 @@ public class RoomSyncTests : IClassFixture<WebApplicationFactory<Program>> {
  [Fact] public async Task Extreme_playback_positions_are_bounded(){
   var http=factory.CreateClient();var created=await (await http.PostAsJsonAsync("/api/rooms",new {name="Host"})).Content.ReadFromJsonAsync<RoomDto>();var a=Connect();await a.StartAsync();await a.InvokeAsync("JoinRoom",created!.code,"A");await a.InvokeAsync("PlaybackChanged",created.code,999999d,false);var state=await http.GetFromJsonAsync<PlaybackRoomDto>($"/api/rooms/{created.code}");Assert.Equal(86400d,state!.playback.position);await a.DisposeAsync();
  }
- [Fact] public async Task Health_endpoint_is_available(){var r=await factory.CreateClient().GetAsync("/health");Assert.True(r.IsSuccessStatusCode);}
+ [Fact] public async Task Health_and_readiness_endpoints_are_available(){var client=factory.CreateClient();var health=await client.GetAsync("/health");var ready=await client.GetAsync("/ready");Assert.True(health.IsSuccessStatusCode);Assert.True(ready.IsSuccessStatusCode);}
+ [Fact] public async Task New_room_codes_are_cryptographically_sized_and_url_safe(){var room=await (await factory.CreateClient().PostAsJsonAsync("/api/rooms",new{name="Host"})).Content.ReadFromJsonAsync<RoomDto>();Assert.NotNull(room);Assert.Matches("^[A-HJ-NP-Z2-9]{8}$",room!.code);}
  [Fact] public async Task Ended_room_is_removed_by_cleanup(){
   var http=factory.CreateClient();var created=await (await http.PostAsJsonAsync("/api/rooms",new {name="Host"})).Content.ReadFromJsonAsync<RoomDto>();Assert.NotNull(created);
   var hub=Connect();await hub.StartAsync();await hub.InvokeAsync("JoinRoom",created!.code,"Host");await hub.InvokeAsync("EndRoom",created.code);await hub.DisposeAsync();
