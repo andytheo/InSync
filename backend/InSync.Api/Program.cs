@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+using System.Security.Cryptography;
 
 var b=WebApplication.CreateBuilder(args);
 b.Services.AddSignalR(o=>{o.MaximumReceiveMessageSize=32*1024;o.EnableDetailedErrors=b.Environment.IsDevelopment();});
@@ -61,7 +62,7 @@ public sealed class RoomStore {
  readonly ConcurrentDictionary<string,(string Code,Guid ParticipantId)> connections=new();
  readonly IDbContextFactory<InSyncDbContext>? dbFactory;
  public RoomStore(IDbContextFactory<InSyncDbContext>? dbFactory=null){this.dbFactory=dbFactory;LoadPersisted();}
- public Room Create(string name){string c;do c=Random.Shared.Next(100000,999999).ToString();while(rooms.ContainsKey(c));var r=new Room{Code=c};rooms[c]=r;Persist(r);return r;}
+ public Room Create(string name){const string alphabet="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";string c;do c=RandomNumberGenerator.GetString(alphabet,8);while(rooms.ContainsKey(c));var r=new Room{Code=c};rooms[c]=r;Persist(r);return r;}
  public Room? Get(string c)=>rooms.GetValueOrDefault(c);
  public int CleanupExpired(TimeSpan idleFor){var cutoff=DateTimeOffset.UtcNow-idleFor;var removed=0;foreach(var x in rooms){var r=x.Value;bool expire;lock(r.Gate)expire=r.Ended||(!r.Participants.Any(p=>p.Online)&&r.LastActivityAt<cutoff);if(expire&&rooms.TryRemove(x.Key,out _)){DeletePersisted(x.Key);removed++;}}return removed;}
  public Participant Join(string code,string connectionId,string name){
