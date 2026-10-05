@@ -10,8 +10,8 @@ var b=WebApplication.CreateBuilder(args);
 b.Services.AddSignalR(o=>{o.MaximumReceiveMessageSize=32*1024;o.EnableDetailedErrors=b.Environment.IsDevelopment();});
 b.Services.AddRateLimiter(o=>{
  o.RejectionStatusCode=StatusCodes.Status429TooManyRequests;
- o.AddFixedWindowLimiter("room-create",x=>{x.PermitLimit=20;x.Window=TimeSpan.FromMinutes(1);x.QueueLimit=0;x.AutoReplenishment=true;});
- o.AddFixedWindowLimiter("room-read",x=>{x.PermitLimit=120;x.Window=TimeSpan.FromMinutes(1);x.QueueLimit=0;x.AutoReplenishment=true;});
+ o.AddPolicy("room-create",ctx=>RateLimitPartition.GetFixedWindowLimiter(ctx.Connection.RemoteIpAddress?.ToString()??"unknown",_=>new FixedWindowRateLimiterOptions{PermitLimit=20,Window=TimeSpan.FromMinutes(1),QueueLimit=0,AutoReplenishment=true}));
+ o.AddPolicy("room-read",ctx=>RateLimitPartition.GetFixedWindowLimiter(ctx.Connection.RemoteIpAddress?.ToString()??"unknown",_=>new FixedWindowRateLimiterOptions{PermitLimit=120,Window=TimeSpan.FromMinutes(1),QueueLimit=0,AutoReplenishment=true}));
  o.GlobalLimiter=PartitionedRateLimiter.Create<HttpContext,string>(ctx=>RateLimitPartition.GetFixedWindowLimiter(ctx.Connection.RemoteIpAddress?.ToString()??"unknown",_=>new FixedWindowRateLimiterOptions{PermitLimit=300,Window=TimeSpan.FromMinutes(1),QueueLimit=0,AutoReplenishment=true}));
 });
 var dbConnection=NormalizePostgresConnectionString(b.Configuration.GetConnectionString("InSync"));
