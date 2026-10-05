@@ -63,14 +63,14 @@ public partial class Program { }
 record CreateRoom(string? Name);
 public record Participant(Guid Id,string Name,bool Ready=false,bool Online=true);
 public record Playback(double Position,bool Playing,long Sequence,DateTimeOffset UpdatedAt);
-public record ContentSelection(string Title,string Provider,string? Url);
+public record ContentSelection(string Title,string Provider,string? Url);\npublic record ChatMessage(Guid Id,Guid SenderId,string SenderName,string Text,DateTimeOffset SentAt);
 
 public sealed class Room {
  public required string Code{get;init;}
  public List<Participant> Participants{get;}=[];
  public string? Content{get;set;}
  public ContentSelection? Selection{get;set;}
- public Playback Playback{get;set;}=new(0,false,0,DateTimeOffset.UtcNow);
+ public Playback Playback{get;set;}=new(0,false,0,DateTimeOffset.UtcNow);\n public Queue<ChatMessage> Messages{get;}=new();
  public bool Ended{get;set;}
  public object Gate{get;}=new();
  public DateTimeOffset CreatedAt{get;}=DateTimeOffset.UtcNow;
@@ -122,6 +122,9 @@ sealed class RoomHub(RoomStore store):Hub {
  public async Task SelectMedia(string c,ContentSelection selection){var (r,_)=store.RequireMember(c,Context.ConnectionId);var clean=new ContentSelection((selection.Title??"").Trim(),(selection.Provider??"other").Trim().ToLowerInvariant(),string.IsNullOrWhiteSpace(selection.Url)?null:selection.Url.Trim());if(string.IsNullOrWhiteSpace(clean.Title))throw new HubException("Choose something to watch.");if(clean.Title.Length>200||clean.Provider.Length>40||(clean.Url?.Length??0)>2048)throw new HubException("Media details are too long.");if(clean.Url is not null&&(!Uri.TryCreate(clean.Url,UriKind.Absolute,out var parsed)||!(parsed.Scheme==Uri.UriSchemeHttp||parsed.Scheme==Uri.UriSchemeHttps)))throw new HubException("Use a valid web link.");if(clean.Provider=="youtube"&&(clean.Url is null||!Uri.TryCreate(clean.Url,UriKind.Absolute,out var mediaUri)||!(mediaUri.Host.Equals("youtube.com",StringComparison.OrdinalIgnoreCase)||mediaUri.Host.EndsWith(".youtube.com",StringComparison.OrdinalIgnoreCase)||mediaUri.Host.Equals("youtu.be",StringComparison.OrdinalIgnoreCase))))throw new HubException("Use a valid YouTube link.");lock(r.Gate){r.Selection=clean;r.Content=clean.Title;r.LastActivityAt=DateTimeOffset.UtcNow;}store.Save(r);await Clients.Group(c).SendAsync("MediaSelected",clean);}
  public async Task PlaybackChanged(string c,double pos,bool playing){var (r,_)=store.RequireMember(c,Context.ConnectionId);if(r.Selection is null)throw new HubException("Choose a video before controlling playback.");Playback next;lock(r.Gate){if(!double.IsFinite(pos))throw new HubException("Invalid playback position.");var safePos=Math.Clamp(pos,0,86400);var expected=r.Playback.Playing?r.Playback.Position+Math.Max(0,(DateTimeOffset.UtcNow-r.Playback.UpdatedAt).TotalSeconds):r.Playback.Position;if(r.Playback.Playing&&playing&&Math.Abs(safePos-expected)<0.75)return;next=new(safePos,playing,r.Playback.Sequence+1,DateTimeOffset.UtcNow);r.Playback=next;r.LastActivityAt=DateTimeOffset.UtcNow;}store.SavePlaybackCheckpoint(r);await Clients.Group(c).SendAsync("PlaybackChanged",next);}
  public Task React(string c,string emoji){string[] allowed=["❤️","😂","👏","🔥","😮"];if(!allowed.Contains(emoji))throw new HubException("Invalid reaction.");var (r,_)=store.RequireMember(c,Context.ConnectionId);lock(r.Gate)r.LastActivityAt=DateTimeOffset.UtcNow;store.Save(r);return Clients.OthersInGroup(c).SendAsync("ReactionSet",emoji);}
+ public async Task SendMessage(string c,string text){var (r,p)=store.RequireMember(c,Context.ConnectionId);var clean=(text??"").Trim();if(clean.Length<1||clean.Length>500)throw new HubException("Messages must be 1 to 500 characters.");ChatMessage message;lock(r.Gate){message=new(Guid.NewGuid(),p.Id,p.Name,clean,DateTimeOffset.UtcNow);r.Messages.Enqueue(message);while(r.Messages.Count>100)r.Messages.Dequeue();r.LastActivityAt=DateTimeOffset.UtcNow;}await Clients.Group(c).SendAsync("MessageReceived",message);}
+ public Task SetTyping(string c,bool typing){var (r,p)=store.RequireMember(c,Context.ConnectionId);lock(r.Gate)r.LastActivityAt=DateTimeOffset.UtcNow;return Clients.OthersInGroup(c).SendAsync("TypingChanged",p.Id,p.Name,typing);}
+ public Task<IReadOnlyList<ChatMessage>> GetRecentMessages(string c){var (r,_)=store.RequireMember(c,Context.ConnectionId);lock(r.Gate)return Task.FromResult<IReadOnlyList<ChatMessage>>(r.Messages.ToArray());}
  public override async Task OnDisconnectedAsync(Exception? exception){var left=store.Leave(Context.ConnectionId);if(left is {} x)await Clients.Group(x.Code).SendAsync("ParticipantLeft",x.Participant);await base.OnDisconnectedAsync(exception);}
 }
 
