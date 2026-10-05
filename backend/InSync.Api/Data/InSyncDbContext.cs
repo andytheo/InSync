@@ -9,6 +9,7 @@ public sealed class InSyncDbContext(DbContextOptions<InSyncDbContext> options):D
   b.Entity<RoomEntity>().HasMany(x=>x.Participants).WithOne().HasForeignKey(x=>x.RoomCode).OnDelete(DeleteBehavior.Cascade);
   b.Entity<ParticipantEntity>().HasKey(x=>x.Id);
   b.Entity<ParticipantEntity>().Property(x=>x.Id).ValueGeneratedNever();
+  b.Entity<ParticipantEntity>().Property(x=>x.RoomCode).HasMaxLength(8);
   b.Entity<ParticipantEntity>().Property(x=>x.Name).HasMaxLength(80);
  }
 }
