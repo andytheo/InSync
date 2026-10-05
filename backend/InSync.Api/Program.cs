@@ -19,7 +19,8 @@ var allowedOrigins=(b.Configuration["AllowedOrigins"]??"").Split(',',StringSplit
 if(!b.Environment.IsDevelopment()&&string.IsNullOrWhiteSpace(dbConnection))throw new InvalidOperationException("Production requires ConnectionStrings__InSync.");
 if(!b.Environment.IsDevelopment()&&allowedOrigins.Length==0)throw new InvalidOperationException("Production requires AllowedOrigins.");
 if(!string.IsNullOrWhiteSpace(dbConnection)) b.Services.AddDbContextFactory<InSyncDbContext>(o=>o.UseNpgsql(dbConnection));
-b.Services.AddSingleton<RoomStore>(sp=>new RoomStore(sp.GetService<IDbContextFactory<InSyncDbContext>>(),sp.GetRequiredService<ILogger<RoomStore>>()));\nb.Services.AddHostedService<RoomCleanupService>();
+b.Services.AddSingleton<RoomStore>(sp=>new RoomStore(sp.GetService<IDbContextFactory<InSyncDbContext>>(),sp.GetRequiredService<ILogger<RoomStore>>()));
+b.Services.AddHostedService<RoomCleanupService>();
 
 b.Services.AddCors(o=>o.AddDefaultPolicy(p=>{
  p.AllowAnyHeader().AllowAnyMethod().AllowCredentials();
