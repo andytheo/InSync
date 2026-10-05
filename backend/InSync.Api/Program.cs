@@ -25,12 +25,12 @@ b.Services.AddCors(o=>o.AddDefaultPolicy(p=>{
  if(b.Environment.IsDevelopment())p.SetIsOriginAllowed(_=>true);else p.WithOrigins(allowedOrigins);
 }));
 var app=b.Build();
-if(!app.Environment.IsDevelopment())app.UseHttpsRedirection();
+if(!app.Environment.IsDevelopment()){app.UseHsts();app.UseHttpsRedirection();}
 app.UseCors();
 app.UseRateLimiter();
 if(!string.IsNullOrWhiteSpace(dbConnection)){using var scope=app.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<InSyncDbContext>();await db.Database.MigrateAsync();}
 
-app.MapGet("/health",()=>Results.Ok(new {status="ok",environment=app.Environment.EnvironmentName,databaseConfigured=!string.IsNullOrWhiteSpace(dbConnection),time=DateTimeOffset.UtcNow}));
+app.MapGet("/health",()=>Results.Ok(new {status="ok",time=DateTimeOffset.UtcNow}));
 app.MapGet("/ready",async (IServiceProvider services)=>{
  if(string.IsNullOrWhiteSpace(dbConnection))return app.Environment.IsDevelopment()?Results.Ok(new{status="ready",database="disabled"}):Results.StatusCode(503);
  try{await using var scope=services.CreateAsyncScope();var factory=scope.ServiceProvider.GetRequiredService<IDbContextFactory<InSyncDbContext>>();await using var db=await factory.CreateDbContextAsync();return await db.Database.CanConnectAsync()?Results.Ok(new{status="ready",database="connected"}):Results.StatusCode(503);}catch{return Results.StatusCode(503);}
