@@ -63,14 +63,16 @@ public partial class Program { }
 record CreateRoom(string? Name);
 public record Participant(Guid Id,string Name,bool Ready=false,bool Online=true);
 public record Playback(double Position,bool Playing,long Sequence,DateTimeOffset UpdatedAt);
-public record ContentSelection(string Title,string Provider,string? Url);\npublic record ChatMessage(Guid Id,Guid SenderId,string SenderName,string Text,DateTimeOffset SentAt);
+public record ContentSelection(string Title,string Provider,string? Url);
+public record ChatMessage(Guid Id,Guid SenderId,string SenderName,string Text,DateTimeOffset SentAt);
 
 public sealed class Room {
  public required string Code{get;init;}
  public List<Participant> Participants{get;}=[];
  public string? Content{get;set;}
  public ContentSelection? Selection{get;set;}
- public Playback Playback{get;set;}=new(0,false,0,DateTimeOffset.UtcNow);\n public Queue<ChatMessage> Messages{get;}=new();
+ public Playback Playback{get;set;}=new(0,false,0,DateTimeOffset.UtcNow);
+ public Queue<ChatMessage> Messages{get;}=new();
  public bool Ended{get;set;}
  public object Gate{get;}=new();
  public DateTimeOffset CreatedAt{get;}=DateTimeOffset.UtcNow;
