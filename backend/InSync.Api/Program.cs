@@ -24,6 +24,7 @@ b.Services.AddCors(o=>o.AddDefaultPolicy(p=>{
  if(b.Environment.IsDevelopment())p.SetIsOriginAllowed(_=>true);else p.WithOrigins(allowedOrigins);
 }));
 var app=b.Build();
+if(!app.Environment.IsDevelopment())app.UseHttpsRedirection();
 app.UseCors();
 app.UseRateLimiter();
 if(!string.IsNullOrWhiteSpace(dbConnection)){using var scope=app.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<InSyncDbContext>();await db.Database.MigrateAsync();}
