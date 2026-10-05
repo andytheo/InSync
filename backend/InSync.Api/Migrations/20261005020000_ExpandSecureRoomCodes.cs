@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 #nullable disable
 
+[DbContext(typeof(InSyncDbContext))]
 [Migration("20261005020000_ExpandSecureRoomCodes")]
 public partial class ExpandSecureRoomCodes : Migration
 {
