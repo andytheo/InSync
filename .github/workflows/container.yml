@@ -1,0 +1,18 @@
+name: Production container
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/InSync.Api/**"
+      - ".github/workflows/container.yml"
+  pull_request:
+    paths:
+      - "backend/InSync.Api/**"
+      - ".github/workflows/container.yml"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build production API image
+        run: docker build -t insync-api:ci backend/InSync.Api
