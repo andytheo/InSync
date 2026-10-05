@@ -19,7 +19,7 @@ var allowedOrigins=(b.Configuration["AllowedOrigins"]??"").Split(',',StringSplit
 if(!b.Environment.IsDevelopment()&&string.IsNullOrWhiteSpace(dbConnection))throw new InvalidOperationException("Production requires ConnectionStrings__InSync.");
 if(!b.Environment.IsDevelopment()&&allowedOrigins.Length==0)throw new InvalidOperationException("Production requires AllowedOrigins.");
 if(!string.IsNullOrWhiteSpace(dbConnection)) b.Services.AddDbContextFactory<InSyncDbContext>(o=>o.UseNpgsql(dbConnection));
-b.Services.AddSingleton<RoomStore>(sp=>new RoomStore(sp.GetService<IDbContextFactory<InSyncDbContext>>(),sp.GetRequiredService<ILogger<RoomStore>>()));
+b.Services.AddSingleton<RoomStore>(sp=>new RoomStore(sp.GetService<IDbContextFactory<InSyncDbContext>>(),sp.GetRequiredService<ILogger<RoomStore>>()));\nb.Services.AddHostedService<RoomCleanupService>();
 
 b.Services.AddCors(o=>o.AddDefaultPolicy(p=>{
  p.AllowAnyHeader().AllowAnyMethod().AllowCredentials();
@@ -29,7 +29,7 @@ var app=b.Build();
 if(!app.Environment.IsDevelopment()){app.UseHsts();app.UseHttpsRedirection();}
 app.UseCors();
 app.UseRateLimiter();
-if(!string.IsNullOrWhiteSpace(dbConnection)){await using var db=await app.Services.GetRequiredService<IDbContextFactory<InSyncDbContext>>().CreateDbContextAsync();await db.Database.EnsureCreatedAsync();}
+if(!string.IsNullOrWhiteSpace(dbConnection)){await using var db=await app.Services.GetRequiredService<IDbContextFactory<InSyncDbContext>>().CreateDbContextAsync();await db.Database.EnsureCreatedAsync();await db.Database.ExecuteSqlRawAsync("CREATE TABLE IF NOT EXISTS \\\"Rooms\\\" (\\\"Code\\\" character varying(8) PRIMARY KEY, \\\"Content\\\" text NULL, \\\"Provider\\\" text NULL, \\\"MediaUrl\\\" text NULL, \\\"PlaybackPosition\\\" double precision NOT NULL DEFAULT 0, \\\"PlaybackPlaying\\\" boolean NOT NULL DEFAULT false, \\\"PlaybackSequence\\\" bigint NOT NULL DEFAULT 0, \\\"PlaybackUpdatedAt\\\" timestamp with time zone NOT NULL DEFAULT now(), \\\"Ended\\\" boolean NOT NULL DEFAULT false, \\\"CreatedAt\\\" timestamp with time zone NOT NULL DEFAULT now(), \\\"LastActivityAt\\\" timestamp with time zone NOT NULL DEFAULT now())");}
 app.Services.GetRequiredService<RoomStore>();
 // Database migrations must finish before persisted rooms are loaded.
 
