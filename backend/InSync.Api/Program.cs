@@ -31,6 +31,7 @@ app.UseCors();
 app.UseRateLimiter();
 if(!string.IsNullOrWhiteSpace(dbConnection)){await using var db=await app.Services.GetRequiredService<IDbContextFactory<InSyncDbContext>>().CreateDbContextAsync();await db.Database.MigrateAsync();}
 app.Services.GetRequiredService<RoomStore>();
+// Database migrations must finish before persisted rooms are loaded.
 
 app.MapGet("/health",()=>Results.Ok(new {status="ok",time=DateTimeOffset.UtcNow}));
 app.MapGet("/ready",async (IServiceProvider services)=>{
