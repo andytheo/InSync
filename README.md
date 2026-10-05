@@ -4,7 +4,7 @@ A private, cross-platform watch-together companion for two people who are apart.
 
 ## V1
 
-InSync V1 is intentionally narrow: create a private room, invite one other person, paste a YouTube link, watch the embedded video on both phones, synchronize play/pause/seek, react, and recover after reconnects.
+InSync V1 is a private two-person watch room: invite one other person, chat and react in real time, use fully synchronized embedded YouTube playback, or hand off Netflix, Prime Video, and Disney+ title links to each provider while keeping the InSync room alive.
 
 Two physical phones have already validated the core embedded YouTube synchronization flow. V1 does not host or rebroadcast video and does not collect streaming-service credentials.
 
@@ -20,6 +20,11 @@ Two physical phones have already validated the core embedded YouTube synchroniza
 - [x] Server-authoritative play/pause/seek state
 - [x] Drift correction and feedback-loop suppression
 - [x] Fixed emoji reactions
+- [x] Private ephemeral room chat + typing + unread state
+- [x] Netflix companion handoff
+- [x] Prime Video companion handoff
+- [x] Disney+ companion handoff
+- [x] Room restoration after returning from provider apps
 - [x] Room expiration and cleanup
 - [x] PostgreSQL + EF Core persistence
 
@@ -35,7 +40,7 @@ Two physical phones have already validated the core embedded YouTube synchroniza
 - [x] Docker production image + CI build verification
 - [x] Backend integration tests + mobile TypeScript CI
 - [x] Stable iOS/Android identifiers and EAS release profiles
-- [ ] Deploy public HTTPS/WSS API + managed PostgreSQL
+- [x] Deploy public HTTPS/WSS API + managed PostgreSQL
 - [ ] Production monitoring/error reporting
 - [ ] Load/capacity test deployed environment
 - [ ] Cross-network iPhone/Android beta
@@ -54,7 +59,7 @@ Two physical phones have already validated the core embedded YouTube synchroniza
 - Realtime: ASP.NET Core SignalR
 - API: ASP.NET Core / .NET 8
 - Persistence: PostgreSQL + EF Core
-- Video: official embedded YouTube player; video traffic does not pass through the InSync backend
+- Video: official embedded YouTube player for synchronized YouTube playback; Netflix, Prime Video, and Disney+ use provider-owned playback via companion handoff. Video traffic and provider credentials never pass through the InSync backend.
 
 The first production deployment should use one API instance. Room membership and SignalR groups currently live in process. Horizontal scaling requires distributed room state and a SignalR backplane/service before adding replicas.
 
