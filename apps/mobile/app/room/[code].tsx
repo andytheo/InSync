@@ -7,7 +7,22 @@ import YouTubeSyncPlayer,{youtubeVideoId} from "../../components/YouTubeSyncPlay
 
 export default function RoomScreen(){
  const p=useLocalSearchParams<{code:string;name:string}>();const code=String(p.code);const name=String(p.name??"Guest");const conn=useRef<HubConnection|null>(null);
- const [status,setStatus]=useState("Connecting…"),[error,setError]=useState(""),[playback,setPlayback]=useState<Playback>({position:0,playing:false,sequence:0,updatedAt:""}),[people,setPeople]=useState<Participant[]>([]),[mediaUrl,setMediaUrl]=useState(""),[draftUrl,setDraftUrl]=useState(""),[reaction,setReaction]=useState(""),[chatOpen,setChatOpen]=useState(false),[playerReady,setPlayerReady]=useState(false),[joined,setJoined]=useState(false),[messages,setMessages]=useState<ChatMessage[]>([]),[message,setMessage]=useState(""),[partnerTyping,setPartnerTyping]=useState(""),[unread,setUnread]=useState(0);const chatOpenRef=useRef(false);const typingTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
+ const [status,setStatus]=useState("Connecting…");
+ const [error,setError]=useState("");
+ const [playback,setPlayback]=useState<Playback>({position:0,playing:false,sequence:0,updatedAt:""});
+ const [people,setPeople]=useState<Participant[]>([]);
+ const [mediaUrl,setMediaUrl]=useState("");
+ const [draftUrl,setDraftUrl]=useState("");
+ const [reaction,setReaction]=useState("");
+ const [chatOpen,setChatOpen]=useState(false);
+ const [playerReady,setPlayerReady]=useState(false);
+ const [joined,setJoined]=useState(false);
+ const [messages,setMessages]=useState<ChatMessage[]>([]);
+ const [message,setMessage]=useState("");
+ const [partnerTyping,setPartnerTyping]=useState("");
+ const [unread,setUnread]=useState(0);
+ const chatOpenRef=useRef(false);
+ const typingTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
  useEffect(()=>{let active=true;getRoom(code).then(r=>{if(active){setPeople(r.participants);setMediaUrl(r.selection?.url??"");setDraftUrl(r.selection?.url??"");setPlayback(r.playback)}}).catch(()=>{});
  const reconcile=setInterval(()=>{getRoom(code).then(r=>{if(!active)return;setPeople(r.participants);if(r.selection?.url){setMediaUrl(r.selection.url);setDraftUrl(v=>youtubeVideoId(v)?v:r.selection?.url??v)}setPlayback(v=>r.playback.sequence>v.sequence?r.playback:v)}).catch(()=>{})},3000);
  connectToRoom(code,name,{onPlayback:x=>active&&setPlayback(x),onParticipant:x=>active&&setPeople(v=>v.some(y=>y.id===x.id)?v.map(y=>y.id===x.id?x:y):[...v,x]),onParticipantLeft:x=>active&&setPeople(v=>v.map(y=>y.id===x.id?x:y)),onMedia:x=>active&&(setPlayerReady(false),setMediaUrl(x.url??""),setDraftUrl(x.url??"")),onReaction:x=>{if(active){setReaction(x);setTimeout(()=>setReaction(""),1600)}},onMessage:x=>{if(active){setMessages(v=>[...v,x].slice(-100));if(!chatOpenRef.current)setUnread(v=>v+1)}},onTyping:(_,n,t)=>active&&setPartnerTyping(t?n:""),onEnded:()=>active&&setStatus("Room ended")}).then(c=>{if(active){conn.current=c;setJoined(true);c.onreconnecting(()=>{if(active){setJoined(false);setStatus("Reconnecting…")}});c.onreconnected(async()=>{if(!active)return;setJoined(true);setStatus("Connected");try{const r=await getRoom(code);setPeople(r.participants);setMediaUrl(r.selection?.url??"");setDraftUrl(r.selection?.url??"");setPlayback(r.playback)}catch{}});c.onclose(()=>{if(active){setJoined(false);setStatus("Disconnected")}});setStatus("Connected")}else c.stop()}).catch(()=>setStatus("Connection failed"));
