@@ -3,7 +3,7 @@ import { ActivityIndicator,StyleSheet,Text,View } from "react-native";
 import { WebView } from "react-native-webview";
 
 /**
- * Netflix capability probe.
+ * InSync protected-provider capability probe.
  *
  * This deliberately treats netflix.com as an isolated provider-owned surface:
  * - credentials are entered only into Netflix's page;
@@ -11,9 +11,9 @@ import { WebView } from "react-native-webview";
  * - InSync does not read/export cookies, storage, passwords, manifests or DRM data;
  * - navigation is restricted to Netflix HTTPS origins.
  *
- * The purpose is to learn, on a physical Android device, how far Netflix's own
- * web client can progress in Android WebView before protected playback policy/
- * DRM support becomes the boundary.
+ * This is an InSync-specific integration experiment, not an implementation copied
+ * from another watch-party product. It uses the provider-owned HTTPS surface to
+ * identify the supported playback boundary.
  */
 export default function NetflixCapabilityProbe({initialUrl,onNavigation}:{initialUrl?:string;onNavigation?:(url:string)=>void}){
  const [loading,setLoading]=useState(true);
