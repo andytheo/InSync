@@ -1,6 +1,7 @@
 import { useMemo,useState } from "react";
 import { ActivityIndicator,Pressable,StyleSheet,Text,View } from "react-native";
 import { WebView } from "react-native-webview";
+import type { WebViewNavigation } from "react-native-webview";
 
 export type NetflixProbeStage="opening"|"login"|"browse"|"watch"|"blocked"|"error";
 const netflixHttps=(value:string)=>{try{const u=new URL(value);return u.protocol==="https:"&&(u.hostname==="netflix.com"||u.hostname.endsWith(".netflix.com"));}catch{return false}};
@@ -10,6 +11,7 @@ export default function NetflixCapabilityProbe({initialUrl,onNavigation,onStage}
  const [loading,setLoading]=useState(true),[message,setMessage]=useState(""),[stage,setStage]=useState<NetflixProbeStage>("opening"),[key,setKey]=useState(0);
  const source=useMemo(()=>({uri:initialUrl&&netflixHttps(initialUrl)?initialUrl:"https://www.netflix.com/login"}),[initialUrl,key]);
  const update=(url:string)=>{const next=stageFor(url);setStage(next);onStage?.(next);onNavigation?.(url)};
+ const allow=(r:WebViewNavigation)=>{if(r.url==="about:blank")return true;const ok=netflixHttps(r.url);if(!ok&&r.isTopFrame!==false){setMessage("InSync blocked navigation outside Netflix.");}return ok};
  const fail=(text:string)=>{setLoading(false);setStage("error");onStage?.("error");setMessage(text)};
  return <View style={s.wrap}>
   <View style={s.bar}><Text style={s.stage}>NETFLIX · {stage.toUpperCase()}</Text><Pressable onPress={()=>{setMessage("");setLoading(true);setStage("opening");setKey(v=>v+1)}}><Text style={s.retry}>Reload</Text></Pressable></View>
@@ -17,7 +19,7 @@ export default function NetflixCapabilityProbe({initialUrl,onNavigation,onStage}
    {loading?<View pointerEvents="none" style={s.loading}><ActivityIndicator/><Text style={s.loadingText}>Opening Netflix securely…</Text></View>:null}
    <WebView key={key} source={source} javaScriptEnabled domStorageEnabled sharedCookiesEnabled thirdPartyCookiesEnabled allowsInlineMediaPlayback mediaPlaybackRequiresUserAction={false} setSupportMultipleWindows={false}
     originWhitelist={["https://*.netflix.com","https://netflix.com"]}
-    onShouldStartLoadWithRequest={r=>netflixHttps(r.url)}
+    onShouldStartLoadWithRequest={allow}
     onNavigationStateChange={e=>update(e.url)}
     onLoadEnd={e=>{setLoading(false);update(e.nativeEvent.url)}}
     onError={e=>fail(e.nativeEvent.description||"Netflix could not load in this embedded surface.")}
