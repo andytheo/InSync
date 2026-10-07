@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "description": "Private InSync rooms for synchronized watch sessions.",
   "permissions": [
-    "storage"
+    "storage",
+    "tabs"
   ],
   "host_permissions": [
     "https://insync-api-tlfk.onrender.com/*"
@@ -23,5 +24,8 @@
   "action": {
     "default_popup": "popup.html",
     "default_title": "InSync"
+  },
+  "background": {
+    "service_worker": "service-worker.js"
   }
 }
