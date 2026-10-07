@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "InSync Watch Together",
+  "version": "0.1.0",
+  "description": "Private InSync rooms for synchronized watch sessions.",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://insync-api-tlfk.onrender.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.netflix.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "InSync"
+  }
+}
