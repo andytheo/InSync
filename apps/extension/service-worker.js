@@ -2,6 +2,10 @@
 // The extension never reads credentials, cookies, DRM data or media bytes.
 const API="https://insync-api-tlfk.onrender.com";
 const sessions=new Map();
+const STORAGE_KEY="insyncExtensionRooms";
+async function persist(){const rooms=[...sessions.values()].map(s=>({tabId:s.tabId,roomCode:s.roomCode,name:s.name}));await chrome.storage.session.set({[STORAGE_KEY]:rooms})}
+async function restore(){const data=await chrome.storage.session.get(STORAGE_KEY);for(const item of data[STORAGE_KEY]||[]){if(!Number.isInteger(item.tabId)||!/^[A-Z0-9]{8}$/.test(item.roomCode))continue;try{const tab=await chrome.tabs.get(item.tabId);if(!/^https:\/\/www\.netflix\.com\//.test(tab.url||""))continue;await connect(item.tabId,item.roomCode,item.name)}catch{}}}
+
 
 async function negotiate(){
  const response=await fetch(API+"/hubs/rooms/negotiate?negotiateVersion=1",{method:"POST"});
@@ -27,7 +31,7 @@ async function poll(session){
    }
   }catch(e){session.error=String(e);break}
  }
- if(sessions.get(session.tabId)===session){sessions.delete(session.tabId);chrome.action.setBadgeText({tabId:session.tabId,text:"!"}).catch(()=>{})}
+ if(sessions.get(session.tabId)===session){sessions.delete(session.tabId);void persist();chrome.action.setBadgeText({tabId:session.tabId,text:"!"}).catch(()=>{})}
 }
 async function invoke(session,target,args){
  const response=await fetch(session.url,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:hubFrame(target,args)});
@@ -43,6 +47,7 @@ async function connect(tabId,roomCode,name){
  if(!handshake.ok){sessions.delete(tabId);throw new Error("SignalR handshake failed")}
  await invoke(session,"JoinRoom",[roomCode,name]);
  chrome.action.setBadgeText({tabId,text:"ON"}).catch(()=>{});
+ await persist();
  void poll(session);
  return {connected:true};
 }
@@ -58,4 +63,7 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
  })().catch(e=>sendResponse({error:String(e)}));
  return true;
 });
-chrome.tabs.onRemoved.addListener(tabId=>sessions.delete(tabId));
+chrome.tabs.onRemoved.addListener(tabId=>{sessions.delete(tabId);void persist()});
+chrome.runtime.onStartup.addListener(()=>{void restore()});
+chrome.runtime.onInstalled.addListener(()=>{void restore()});
+void restore();
