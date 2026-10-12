@@ -6,6 +6,8 @@ document.querySelector("#connect").addEventListener("click",async()=>{
  const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
  if(!tab?.id||!/^https:\/\/www\.netflix\.com\//i.test(tab.url||"")){status.textContent="Open netflix.com in the active tab first.";return;}
  await chrome.storage.local.set({roomCode,name:displayName});
+ const result=await chrome.runtime.sendMessage({type:"INSYNC_CONNECT",tabId:tab.id,roomCode,name:displayName});
+ if(result?.error){status.textContent=result.error;return;}
  await chrome.tabs.sendMessage(tab.id,{type:"INSYNC_ROOM",roomCode,name:displayName});
- status.textContent="Connected locally. Realtime room transport is the next adapter step.";
+ status.textContent="Room connected. Try play/pause on Netflix.";
 });
