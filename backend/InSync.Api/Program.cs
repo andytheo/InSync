@@ -91,7 +91,7 @@ public sealed class RoomStore {
  public int CleanupExpired(TimeSpan idleFor){var cutoff=DateTimeOffset.UtcNow-idleFor;var removed=0;foreach(var x in rooms){var r=x.Value;bool expire;lock(r.Gate)expire=r.Ended||(!r.Participants.Any(p=>p.Online)&&r.LastActivityAt<cutoff);if(expire&&rooms.TryRemove(x.Key,out _)){playbackCheckpoints.TryRemove(x.Key,out _);DeletePersisted(x.Key);removed++;}}return removed;}
  public Participant Join(string code,string connectionId,string name){
   var r=Get(code)??throw new HubException("Room not found");Participant p;
-  lock(r.Gate){if(r.Ended)throw new HubException("Room has ended.");if(r.Participants.Count(x=>x.Online)>=2&&!r.Participants.Any(x=>x.Name.Equals(name,StringComparison.OrdinalIgnoreCase)&&!x.Online))throw new HubException("This room already has two people.");var i=r.Participants.FindIndex(x=>x.Name.Equals(name,StringComparison.OrdinalIgnoreCase)&&!x.Online);if(i>=0){p=r.Participants[i] with{Online=true};r.Participants[i]=p;}else{p=new(Guid.NewGuid(),name);r.Participants.Add(p);}r.LastActivityAt=DateTimeOffset.UtcNow;}
+  lock(r.Gate){if(r.Ended)throw new HubException("Room has ended.");if(r.Participants.Count>=2&&!r.Participants.Any(x=>x.Name.Equals(name,StringComparison.OrdinalIgnoreCase)&&!x.Online))throw new HubException("This room already has two people.");var i=r.Participants.FindIndex(x=>x.Name.Equals(name,StringComparison.OrdinalIgnoreCase)&&!x.Online);if(i>=0){p=r.Participants[i] with{Online=true};r.Participants[i]=p;}else{p=new(Guid.NewGuid(),name);r.Participants.Add(p);}r.LastActivityAt=DateTimeOffset.UtcNow;}
   connections[connectionId]=(code,p.Id);Persist(r);return p;
  }
  public (string Code,Participant Participant)? Leave(string connectionId){
