@@ -2,7 +2,7 @@
 // The extension never reads credentials, cookies, DRM data or media bytes.
 const API="https://insync-api-tlfk.onrender.com";
 const sessions=new Map();
-const pause=ms=>new Promise(r=>setTimeout(r,ms));
+
 async function negotiate(){
  const response=await fetch(API+"/hubs/rooms/negotiate?negotiateVersion=1",{method:"POST"});
  if(!response.ok)throw new Error("SignalR negotiation failed ("+response.status+")");
@@ -21,7 +21,7 @@ async function poll(session){
     if(!raw)continue;
     let frame;try{frame=JSON.parse(raw)}catch{continue}
     if(frame.type===1&&frame.target==="PlaybackChanged"){
-     const p=frame.arguments?.[0];if(p&&Number.isFinite(p.position))chrome.tabs.sendMessage(session.tabId,{type:"INSYNC_APPLY",position:p.position,playing:p.playing}).catch(()=>{});
+     const p=frame.arguments?.[0];if(p&&Number.isFinite(p.position)&&p.sequence>session.lastSequence){session.lastSequence=p.sequence;chrome.tabs.sendMessage(session.tabId,{type:"INSYNC_APPLY",position:p.position,playing:p.playing}).catch(()=>{});}
     }
     if(frame.type===7)throw new Error("Room disconnected");
    }
@@ -37,7 +37,7 @@ async function connect(tabId,roomCode,name){
  const previous=sessions.get(tabId);if(previous)sessions.delete(tabId);
  const token=await negotiate();
  const url=API+"/hubs/rooms?id="+encodeURIComponent(token);
- const session={tabId,roomCode,name,url,error:""};
+ const session={tabId,roomCode,name,url,error:"",lastSequence:-1};
  sessions.set(tabId,session);
  const handshake=await fetch(url,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:'{"protocol":"json","version":1}\x1e'});
  if(!handshake.ok){sessions.delete(tabId);throw new Error("SignalR handshake failed")}
