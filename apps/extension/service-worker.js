@@ -2,6 +2,7 @@
 // The extension never reads credentials, cookies, DRM data or media bytes.
 const API="https://insync-api-tlfk.onrender.com";
 const sessions=new Map();
+let restorePromise=null;
 const STORAGE_KEY="insyncExtensionRooms";
 async function persist(){const rooms=[...sessions.values()].map(s=>({tabId:s.tabId,roomCode:s.roomCode,name:s.name}));await chrome.storage.session.set({[STORAGE_KEY]:rooms})}
 async function restore(){const data=await chrome.storage.session.get(STORAGE_KEY);for(const item of data[STORAGE_KEY]||[]){if(!Number.isInteger(item.tabId)||!/^[A-Z0-9]{8}$/.test(item.roomCode))continue;try{const tab=await chrome.tabs.get(item.tabId);if(!/^https:\/\/www\.netflix\.com\//.test(tab.url||""))continue;await connect(item.tabId,item.roomCode,item.name)}catch{}}}
@@ -55,8 +56,9 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
  (async()=>{
   if(message?.type==="INSYNC_CONNECT"){sendResponse(await connect(message.tabId,message.roomCode,message.name));return}
   if(message?.type==="INSYNC_PLAYBACK"){
+   if(restorePromise)await restorePromise;
    const session=sessions.get(sender.tab?.id);
-   if(session&&session.roomCode===message.roomCode)await invoke(session,"PlaybackChanged",[session.roomCode,message.state.position,message.state.playing]);
+   if(session&&session.roomCode===message.roomCode)await invoke(session,"UpdatePlayback",[session.roomCode,message.state.position,message.state.playing]);
    sendResponse({ok:true});return
   }
   sendResponse({ok:false});
@@ -66,4 +68,4 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
 chrome.tabs.onRemoved.addListener(tabId=>{sessions.delete(tabId);void persist()});
 chrome.runtime.onStartup.addListener(()=>{void restore()});
 chrome.runtime.onInstalled.addListener(()=>{void restore()});
-void restore();
+restorePromise=restore();
